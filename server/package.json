@@ -1,0 +1,20 @@
+{
+  "name": "notion-pdf-exporter-server",
+  "version": "1.0.0",
+  "description": "Backend API for Notion to branded PDF exporter",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "keywords": ["notion", "pdf", "export"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
