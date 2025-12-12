@@ -1,0 +1,129 @@
+.download-button {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.download-button h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.download-button .description {
+  color: #6b6b6b;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.generation-section {
+  margin-bottom: 2rem;
+}
+
+.generate-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 0.75rem;
+}
+
+.generate-button:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.generate-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.generate-button svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.reset-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background-color: #fff;
+  color: #37352f;
+  border: 1px solid #d3d3d3;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-button:hover:not(:disabled) {
+  background-color: #f9f9f9;
+  border-color: #999;
+}
+
+.reset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info-box {
+  background: #f0f7ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.info-box h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: #1a1a1a;
+}
+
+.info-box ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #37352f;
+}
+
+.info-box li {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.info-box .note {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #b3d9ff;
+  font-size: 0.875rem;
+  color: #6b6b6b;
+}
+
+.info-box .note strong {
+  color: #37352f;
+}

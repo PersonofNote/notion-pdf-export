@@ -8,11 +8,23 @@
     "build": "tsc",
     "start": "node dist/server.js"
   },
-  "keywords": ["notion", "pdf", "export"],
+  "keywords": [
+    "notion",
+    "pdf",
+    "export"
+  ],
   "author": "",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "@notionhq/client": "^5.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "puppeteer": "^24.33.0"
+  },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"

@@ -42,20 +42,33 @@ notion_pdf_export/
 
 ## Development Status
 
-### ✅ Completed
-- [x] Project structure setup
+### ✅ Phase 1: Project Foundation - COMPLETE
+- [x] Project structure setup (client + server directories)
 - [x] Backend initialized (Node.js + Express + TypeScript)
+- [x] Frontend initialized (React + Vite + TypeScript)
+- [x] Backend dependencies installed (Express, Notion client, Puppeteer, CORS)
+- [x] Frontend dependencies installed (React, Vite, TypeScript)
+- [x] Environment variables configured
 
-### 🚧 In Progress
-- [ ] Frontend initialization (React + Vite)
+### ✅ Phase 2: Backend Core - COMPLETE
+- [x] Notion API service integration (notionService.ts)
+- [x] Template renderer (Notion blocks → HTML) (templateRenderer.ts)
+- [x] PDF generator (Puppeteer) (pdfGenerator.ts)
+- [x] API routes (/api/notion/fetch, /api/pdf/generate)
+- [x] Express server with CORS and error handling
 
-### 📋 Upcoming
-- Backend dependencies (Express, Notion client, Puppeteer)
-- Frontend dependencies (React, TypeScript tooling)
-- Notion API integration
-- PDF generation service
-- Frontend UI components
-- Testing and deployment
+### 🚧 Phase 3: Frontend UI - IN PROGRESS
+- [x] API service client (native fetch) (api.ts)
+- [x] NotionUrlInput component (Step 1: URL + token input)
+- [x] LetterheadEditor component (Step 2: Logo + contact info)
+- [x] PropertyFilter component (Step 3: Show/hide properties)
+- [x] DownloadButton component (Step 4: Generate & download)
+- [ ] App.tsx with state management (orchestrating all components)
+
+### 📋 Phase 4: Testing & Polish - UPCOMING
+- [ ] Integration testing
+- [ ] Error handling
+- [ ] Documentation updates
 
 ## Setup Instructions
 
