@@ -194,10 +194,26 @@ export function renderTemplate(blocks: NotionBlock[]) {
 - **Local file storage**: PDFs not persisted (generate on demand)
 
 ## Post-MVP Enhancements (Do NOT build these yet)
-- User accounts + saved templates
-- OAuth integration (no manual token entry)
-- Support for complex blocks (databases, callouts, images)
+
+### High Priority
+- **Database support** - Export Notion databases as formatted tables in PDF (see IMPLEMENTATION_PLAN.md for detailed plan)
+  - Fetch database rows via `notion.databases.query()`
+  - Render as HTML tables with column filtering
+  - Handle pagination for large databases
+  - Support landscape orientation for wide tables
+
+### Medium Priority
+- **OAuth integration** - One-click "Connect with Notion" instead of manual token entry (see IMPLEMENTATION_PLAN.md for detailed plan)
+  - Implement OAuth 2.0 flow with Notion API
+  - Session-based token storage with express-session
+  - Optional: Database for persistent storage
+  - Backward compatible with manual token option
+  - Estimated: 8-10 hours (session-only) or 15-22 hours (with database)
+- User accounts + saved templates (requires OAuth + database)
+- Support for complex blocks (callouts, images, embeds)
 - Batch export (multiple pages → single PDF)
+
+### Lower Priority
 - Custom CSS styling beyond letterhead
 - Template marketplace
 
