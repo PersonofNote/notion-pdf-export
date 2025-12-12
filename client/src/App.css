@@ -1,28 +1,191 @@
-.App {
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.app-header {
+  padding: 2rem 1rem 1.5rem;
+  text-align: center;
+  color: white;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tagline {
+  margin: 0.5rem 0 0;
+  font-size: 1.1rem;
+  opacity: 0.95;
+  font-weight: 300;
+}
+
+.app-main {
+  flex: 1;
+  padding: 2rem 1rem;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  padding: 0 1rem;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 120px;
+  position: relative;
+}
+
+.progress-step::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 60%;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 0;
+}
+
+.progress-step:last-child::after {
+  display: none;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.progress-step.active .step-circle {
+  background: white;
+  color: #667eea;
+  border-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+}
+
+.progress-step.completed .step-circle {
+  background: #4caf50;
+  border-color: #4caf50;
+}
+
+.progress-step.completed .step-circle::before {
+  content: '✓';
+  position: absolute;
+}
+
+.progress-step.completed .step-circle {
+  font-size: 0;
+}
+
+.step-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
   text-align: center;
 }
 
-.card {
-  padding: 2em;
+.progress-step.active .step-label {
+  color: white;
+  font-weight: 600;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+.step-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  min-height: 400px;
+  overflow: hidden;
 }
 
-button:hover {
-  border-color: #646cff;
+.app-footer {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.app-footer p {
+  margin: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .app-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .tagline {
+    font-size: 0.95rem;
+  }
+
+  .progress-steps {
+    gap: 0.5rem;
+    padding: 0 0.5rem;
+  }
+
+  .progress-step {
+    max-width: 80px;
+  }
+
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+  }
+
+  .progress-step::after {
+    top: 16px;
+  }
+
+  .step-label {
+    font-size: 0.7rem;
+  }
+
+  .app-main {
+    padding: 1rem 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .step-label {
+    display: none;
+  }
+
+  .progress-steps {
+    gap: 0.75rem;
+  }
+
+  .progress-step::after {
+    width: 80%;
+    left: 70%;
+  }
 }

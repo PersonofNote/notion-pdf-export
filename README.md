@@ -57,13 +57,13 @@ notion_pdf_export/
 - [x] API routes (/api/notion/fetch, /api/pdf/generate)
 - [x] Express server with CORS and error handling
 
-### 🚧 Phase 3: Frontend UI - IN PROGRESS
+### ✅ Phase 3: Frontend UI - COMPLETE
 - [x] API service client (native fetch) (api.ts)
 - [x] NotionUrlInput component (Step 1: URL + token input)
 - [x] LetterheadEditor component (Step 2: Logo + contact info)
 - [x] PropertyFilter component (Step 3: Show/hide properties)
 - [x] DownloadButton component (Step 4: Generate & download)
-- [ ] App.tsx with state management (orchestrating all components)
+- [x] App.tsx with state management and 4-step flow
 
 ### 📋 Phase 4: Testing & Polish - UPCOMING
 - [ ] Integration testing
@@ -100,7 +100,28 @@ npm start
 ```
 
 ### Frontend Setup
-*(Coming soon - will be added when frontend is initialized)*
+
+1. Navigate to the client directory:
+```bash
+cd client
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Run the development server:
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+4. Build for production:
+```bash
+npm run build
+```
 
 ### Environment Variables
 

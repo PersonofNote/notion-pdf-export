@@ -10,30 +10,47 @@ import type {
  * Extract page ID from various Notion URL formats
  * Supports:
  * - https://www.notion.so/Page-Title-abc123def456
- * - https://notion.so/abc123def456
- * - abc123def456 (raw ID)
+ * - https://www.notion.so/workspace/abc123def456
+ * - https://notion.so/abc123def456?v=...
+ * - abc123def456 (raw ID with or without hyphens)
  */
 export function extractPageId(url: string): string {
-  // If it's already a UUID-like string, return it
+  // Remove any query parameters
+  const urlWithoutQuery = url.split('?')[0];
+
+  // If it's already a UUID-like string (with or without hyphens), return it
+  const cleanUrl = urlWithoutQuery.replace(/-/g, '');
   const uuidRegex = /^[a-f0-9]{32}$/i;
-  const cleanUrl = url.replace(/-/g, '');
   if (uuidRegex.test(cleanUrl)) {
     return cleanUrl;
   }
 
-  // Extract from URL
-  const matches = url.match(/(?:https?:\/\/)?(?:www\.)?notion\.so\/.*-([a-f0-9]{32})/i);
+  // Extract from URL - try different patterns
+  // Pattern 1: URL with page title (most common)
+  let matches = urlWithoutQuery.match(/(?:https?:\/\/)?(?:www\.)?notion\.so\/.*?([a-f0-9]{32})/i);
   if (matches && matches[1]) {
     return matches[1];
   }
 
-  // Try to extract just the ID at the end
-  const endMatches = url.match(/([a-f0-9]{32})$/i);
-  if (endMatches && endMatches[1]) {
-    return endMatches[1];
+  // Pattern 2: URL with hyphens in ID
+  matches = urlWithoutQuery.match(/(?:https?:\/\/)?(?:www\.)?notion\.so\/.*?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  if (matches && matches[1]) {
+    return matches[1].replace(/-/g, '');
   }
 
-  throw new Error('Invalid Notion URL or page ID');
+  // Pattern 3: Just the ID at the end
+  matches = urlWithoutQuery.match(/([a-f0-9]{32})$/i);
+  if (matches && matches[1]) {
+    return matches[1];
+  }
+
+  // Pattern 4: ID with hyphens at the end
+  matches = urlWithoutQuery.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
+  if (matches && matches[1]) {
+    return matches[1].replace(/-/g, '');
+  }
+
+  throw new Error('Invalid Notion URL or page ID. Please paste the full URL from your browser.');
 }
 
 /**
@@ -55,6 +72,8 @@ export async function fetchNotionPage(pageUrl: string, token: string) {
     // Extract and format page ID
     const rawPageId = extractPageId(pageUrl);
     const pageId = formatPageId(rawPageId);
+
+    console.log('Fetching Notion page:', pageId);
 
     // Fetch page metadata
     const page = await notion.pages.retrieve({ page_id: pageId });
@@ -122,11 +141,17 @@ export async function fetchNotionPage(pageUrl: string, token: string) {
     console.error('Error fetching Notion page:', error);
 
     if (error.code === 'object_not_found') {
-      throw new Error('Page not found. Check the URL and make sure your integration has access to this page.');
+      throw new Error(
+        'Page not found. To fix: (1) Open the page in Notion, (2) Click "..." menu → "Connections" or "Add connections", (3) Add your integration to that specific page. Note: Sharing a parent page is not enough - you must share the exact page you want to export.'
+      );
     } else if (error.code === 'unauthorized') {
-      throw new Error('Invalid Notion token or insufficient permissions.');
+      throw new Error('Invalid Notion token. Make sure you copied the entire "Internal Integration Secret" from notion.so/my-integrations');
     } else if (error.code === 'restricted_resource') {
-      throw new Error('Access restricted. Make sure the integration is added to this page.');
+      throw new Error('Access restricted. Open the page in Notion, click "..." → "Add connections", and select your integration.');
+    } else if (error.message?.includes('is a database')) {
+      throw new Error(
+        'Database export not supported yet. To export database content: (1) Create a new Notion page, (2) Type "/linked" and create a linked database view, (3) Export that page instead. Or open a specific database row and export that individual page.'
+      );
     }
 
     throw new Error(`Failed to fetch Notion page: ${error.message}`);
