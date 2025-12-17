@@ -1,5 +1,6 @@
 :root {
   --bg: white;
+  --bg-secondary: #f8f9fa;
   --primary: #667eea;
   --secondary: #764ba2;
   --success: #4caf50;
@@ -16,9 +17,10 @@
 }
 
 .app-header {
-  padding: 2rem 1rem 1.5rem;
+  padding-top: 2rem;
   text-align: center;
   color: var(--text-dark);
+ 
 }
 
 .app-header h1 {

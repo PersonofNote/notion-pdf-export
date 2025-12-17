@@ -89,6 +89,7 @@ API Endpoints:
   GET  /api/auth/notion/callback    - OAuth callback
   GET  /api/auth/status             - Check auth status
   POST /api/auth/logout             - Logout
+  GET  /api/notion/pages            - Get accessible pages (OAuth)
   POST /api/notion/fetch            - Fetch Notion page
   POST /api/pdf/generate            - Generate PDF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

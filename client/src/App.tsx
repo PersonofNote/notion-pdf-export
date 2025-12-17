@@ -182,6 +182,7 @@ function App() {
   // Reset to start
   const handleReset = () => {
     setState({
+      authenticated: state.authenticated,
       step: 1,
       notionUrl: '',
       notionToken: '',
@@ -224,7 +225,7 @@ function App() {
             >
               <div className="step-circle">{stepNum}</div>
               <div className="step-label">
-                {stepNum === 1 && 'Fetch Page'}
+                {stepNum === 1 && 'Choose Page(s)'}
                 {stepNum === 2 && 'Letterhead'}
                 {stepNum === 3 && 'Filter'}
                 {stepNum === 4 && 'Generate'}
@@ -274,7 +275,7 @@ function App() {
 
       <footer className="app-footer">
         <p>
-          Built for converting Notion pages to professional PDFs with custom branding
+          Built for converting Notion pages to PDFs with custom branding
         </p>
       </footer>
     </div>

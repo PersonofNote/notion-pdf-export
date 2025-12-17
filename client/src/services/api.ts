@@ -33,6 +33,24 @@ export interface AuthStatusResponse {
   workspaceIcon?: string;
 }
 
+export interface NotionPage {
+  id: string;
+  title: string;
+  url: string;
+  lastEditedTime: string;
+  icon?: {
+    type: string;
+    emoji?: string;
+    file?: { url: string };
+    external?: { url: string };
+  } | null;
+}
+
+export interface NotionPagesResponse {
+  pages: NotionPage[];
+  hasMore: boolean;
+}
+
 // Use environment variable for API URL, fallback to relative path
 const API_BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
@@ -153,4 +171,22 @@ export async function logout(): Promise<void> {
   if (!response.ok) {
     throw new Error('Failed to logout');
   }
+}
+
+/**
+ * Fetch list of pages accessible to the authenticated user
+ * Requires OAuth authentication
+ */
+export async function fetchAccessiblePages(): Promise<NotionPagesResponse> {
+  const response = await fetch(`${API_BASE_URL}/notion/pages`, {
+    method: 'GET',
+    credentials: 'include', // Send cookies for session
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || 'Failed to fetch pages');
+  }
+
+  return response.json();
 }
