@@ -1,8 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieSession from 'cookie-session';
 import notionRouter from './routes/notion';
 import pdfRouter from './routes/pdf';
+import authRouter from './routes/auth';
 
 // Load environment variables
 dotenv.config({ path: '../.env' });
@@ -10,11 +12,29 @@ dotenv.config({ path: '../.env' });
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback_secret_for_development';
+
+// Trust first proxy (ngrok)
+app.set('trust proxy', 1);
 
 // Middleware
+// Allow requests from frontend (important for OAuth with ngrok)
 app.use(cors({
   origin: CLIENT_URL,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Cookie-based session (stores data in cookie, more reliable for OAuth)
+app.use(cookieSession({
+  name: 'notion_pdf_session',
+  keys: [SESSION_SECRET], // Encryption keys
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  secure: true, // HTTPS only (ngrok provides HTTPS)
+  httpOnly: true,
+  sameSite: 'none', // Required for cross-site cookies
+  signed: true,
 }));
 
 app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
@@ -32,6 +52,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // API routes
+app.use('/api/auth', authRouter);
 app.use('/api/notion', notionRouter);
 app.use('/api/pdf', pdfRouter);
 
@@ -64,8 +85,12 @@ Client:      ${CLIENT_URL}
 Health:      http://localhost:${PORT}/health
 
 API Endpoints:
-  POST /api/notion/fetch    - Fetch Notion page
-  POST /api/pdf/generate    - Generate PDF
+  GET  /api/auth/notion             - Initiate OAuth
+  GET  /api/auth/notion/callback    - OAuth callback
+  GET  /api/auth/status             - Check auth status
+  POST /api/auth/logout             - Logout
+  POST /api/notion/fetch            - Fetch Notion page
+  POST /api/pdf/generate            - Generate PDF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);
 });

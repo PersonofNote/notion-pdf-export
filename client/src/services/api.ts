@@ -16,7 +16,7 @@ export interface LetterheadData {
 
 export interface FetchNotionPageRequest {
   pageUrl: string;
-  notionToken: string;
+  notionToken?: string;
 }
 
 export interface GeneratePdfRequest {
@@ -27,20 +27,31 @@ export interface GeneratePdfRequest {
   hiddenProperties?: string[];
 }
 
-const API_BASE_URL = '/api';
+export interface AuthStatusResponse {
+  authenticated: boolean;
+  workspaceName?: string;
+  workspaceIcon?: string;
+}
+
+// Use environment variable for API URL, fallback to relative path
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
 
 /**
  * Fetch Notion page content and metadata
+ * Token is optional if user is authenticated via OAuth
  */
 export async function fetchNotionPage(
   pageUrl: string,
-  notionToken: string
+  notionToken?: string
 ): Promise<NotionPageData> {
   const response = await fetch(`${API_BASE_URL}/notion/fetch`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include', // Send cookies for session
     body: JSON.stringify({
       pageUrl,
       notionToken,
@@ -105,4 +116,41 @@ export function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Initiate OAuth flow - redirect to Notion authorization
+ */
+export function initiateOAuth(): void {
+  window.location.href = `${API_BASE_URL}/auth/notion`;
+}
+
+/**
+ * Check if user is authenticated via OAuth
+ */
+export async function checkAuthStatus(): Promise<AuthStatusResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/status`, {
+    method: 'GET',
+    credentials: 'include', // Send cookies for session
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to check authentication status');
+  }
+
+  return response.json();
+}
+
+/**
+ * Logout and clear session
+ */
+export async function logout(): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include', // Send cookies for session
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to logout');
+  }
 }

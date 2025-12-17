@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NotionUrlInput from './components/NotionUrlInput';
 import LetterheadEditor from './components/LetterheadEditor';
 import PropertyFilter from './components/PropertyFilter';
 import DownloadButton from './components/DownloadButton';
+import AuthStatus from './components/AuthStatus';
 import {
   fetchNotionPage,
   generatePdf,
   downloadPdf,
+  checkAuthStatus,
   type NotionPageData,
   type LetterheadData,
 } from './services/api';
@@ -23,6 +25,9 @@ interface AppState {
   hiddenProperties: string[];
   loading: boolean;
   error: string | null;
+  authenticated: boolean;
+  workspaceName?: string;
+  workspaceIcon?: string;
 }
 
 function App() {
@@ -40,10 +45,50 @@ function App() {
     hiddenProperties: [],
     loading: false,
     error: null,
+    authenticated: false,
   });
 
+  // Check authentication status on mount and handle OAuth callback
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const authStatus = await checkAuthStatus();
+        setState((prev) => ({
+          ...prev,
+          authenticated: authStatus.authenticated,
+          workspaceName: authStatus.workspaceName,
+          workspaceIcon: authStatus.workspaceIcon,
+        }));
+      } catch (error) {
+        console.error('Failed to check auth status:', error);
+      }
+    };
+
+    // Handle OAuth callback parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const authResult = urlParams.get('auth');
+    const errorParam = urlParams.get('error');
+
+    if (authResult === 'success') {
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Check auth status to update UI
+      checkAuth();
+    } else if (errorParam) {
+      setState((prev) => ({
+        ...prev,
+        error: `Authentication failed: ${errorParam}`,
+      }));
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      // Normal page load - just check auth status
+      checkAuth();
+    }
+  }, []);
+
   // Step 1: Fetch Notion page
-  const handleFetchPage = async (url: string, token: string) => {
+  const handleFetchPage = async (url: string, token?: string) => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -52,7 +97,7 @@ function App() {
       setState((prev) => ({
         ...prev,
         notionUrl: url,
-        notionToken: token,
+        notionToken: token || '',
         pageData,
         step: 2,
         loading: false,
@@ -65,6 +110,21 @@ function App() {
         error: error instanceof Error ? error.message : 'Failed to fetch page',
       }));
     }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setState((prev) => ({
+      ...prev,
+      authenticated: false,
+      workspaceName: undefined,
+      workspaceIcon: undefined,
+      // Reset to step 1 if user was in the middle of a flow
+      step: 1,
+      pageData: null,
+      notionUrl: '',
+      notionToken: '',
+    }));
   };
 
   // Step 2: Update letterhead
@@ -143,6 +203,13 @@ function App() {
       <header className="app-header">
         <h1>Notion PDF Exporter</h1>
         <p className="tagline">Convert Notion pages to branded PDFs</p>
+        {state.authenticated && (
+          <AuthStatus
+            workspaceName={state.workspaceName}
+            workspaceIcon={state.workspaceIcon}
+            onLogout={handleLogout}
+          />
+        )}
       </header>
 
       <main className="app-main">
@@ -173,6 +240,7 @@ function App() {
               onFetch={handleFetchPage}
               loading={state.loading}
               error={state.error}
+              authenticated={state.authenticated}
             />
           )}
 

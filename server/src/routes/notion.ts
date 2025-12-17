@@ -9,7 +9,7 @@ const router = express.Router();
  */
 router.post('/fetch', async (req: Request, res: Response) => {
   try {
-    const { pageUrl, notionToken } = req.body;
+    const { pageUrl, notionToken: bodyToken } = req.body;
 
     // Validation
     if (!pageUrl) {
@@ -18,9 +18,14 @@ router.post('/fetch', async (req: Request, res: Response) => {
       });
     }
 
+    // Get token from session or request body
+    // Session token takes precedence (OAuth flow)
+    const notionToken = req.session?.notionToken || bodyToken;
+
     if (!notionToken) {
-      return res.status(400).json({
-        error: 'Missing required field: notionToken',
+      return res.status(401).json({
+        error: 'Not authenticated',
+        message: 'Please provide a Notion token or authenticate via OAuth',
       });
     }
 

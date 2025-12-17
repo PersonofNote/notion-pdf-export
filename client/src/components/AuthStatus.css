@@ -1,0 +1,50 @@
+.auth-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.auth-status-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workspace-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.workspace-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #24292e;
+}
+
+.disconnect-button {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #d73a49;
+  background-color: white;
+  border: 1px solid #d73a49;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.disconnect-button:hover {
+  background-color: #d73a49;
+  color: white;
+}
+
+.disconnect-button:active {
+  transform: scale(0.98);
+}
