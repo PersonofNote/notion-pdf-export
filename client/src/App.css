@@ -201,3 +201,8 @@
     left: 70%;
   }
 }
+
+button {
+  height: 48px;
+  border-radius: 12px;
+}

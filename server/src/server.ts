@@ -91,7 +91,8 @@ API Endpoints:
   POST /api/auth/logout             - Logout
   GET  /api/notion/pages            - Get accessible pages (OAuth)
   POST /api/notion/fetch            - Fetch Notion page
-  POST /api/pdf/generate            - Generate PDF
+  POST /api/pdf/generate            - Generate single PDF
+  POST /api/pdf/batch               - Generate multiple PDFs (zip)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `);
 });

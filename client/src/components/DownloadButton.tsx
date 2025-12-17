@@ -5,19 +5,25 @@ interface DownloadButtonProps {
   loading: boolean;
   error: string | null;
   onReset: () => void;
+  pageCount?: number;
 }
 
 export default function DownloadButton({
   onGenerate,
   loading,
   error,
-  onReset
+  onReset,
+  pageCount = 1
 }: DownloadButtonProps) {
+  const isMultiple = pageCount > 1;
+
   return (
     <div className="download-button">
-      <h2>Step 4: Generate PDF</h2>
+      <h2>Step 4: Generate {isMultiple ? 'PDFs' : 'PDF'}</h2>
       <p className="description">
-        Click the button below to generate and download your branded PDF.
+        {isMultiple
+          ? `Generate ${pageCount} branded PDFs and download them as a zip file.`
+          : 'Click the button below to generate and download your branded PDF.'}
       </p>
 
       <div className="generation-section">
@@ -44,7 +50,7 @@ export default function DownloadButton({
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Generate & Download PDF
+              {isMultiple ? `Generate & Download ${pageCount} PDFs` : 'Generate & Download PDF'}
             </>
           )}
         </button>
@@ -63,11 +69,12 @@ export default function DownloadButton({
         <ul>
           <li>Your Notion content will be converted to HTML</li>
           <li>The letterhead and contact info will be added</li>
-          <li>Selected properties will be included in the document</li>
-          <li>A professional PDF will be generated and downloaded</li>
+          <li>Selected properties will be included in the document{isMultiple ? 's' : ''}</li>
+          {isMultiple && <li>All PDFs will be packaged into a zip file</li>}
+          <li>Professional PDF{isMultiple ? 's' : ''} will be generated and downloaded</li>
         </ul>
         <p className="note">
-          <strong>Note:</strong> PDF generation may take 5-10 seconds depending on page size.
+          <strong>Note:</strong> PDF generation may take {isMultiple ? `${pageCount * 5}-${pageCount * 10}` : '5-10'} seconds.
         </p>
       </div>
     </div>

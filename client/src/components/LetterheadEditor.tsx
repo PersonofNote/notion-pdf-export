@@ -6,9 +6,10 @@ interface LetterheadEditorProps {
   letterhead: LetterheadData;
   onUpdate: (letterhead: LetterheadData) => void;
   onNext: () => void;
+  onBack: () => void;
 }
 
-export default function LetterheadEditor({ letterhead, onUpdate, onNext }: LetterheadEditorProps) {
+export default function LetterheadEditor({ letterhead, onUpdate, onNext, onBack }: LetterheadEditorProps) {
   const [uploading, setUploading] = useState(false);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,15 +145,16 @@ export default function LetterheadEditor({ letterhead, onUpdate, onNext }: Lette
             />
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={!canProceed}
-          className="next-button"
-        >
-          Next: Filter Properties
+        <div className="form-row">
+          <button className="back-button" onClick={onBack}>Back</button>
+          <button
+            onClick={onNext}
+            disabled={!canProceed}
+            className="next-button"
+          >
+            Next
         </button>
+        </div>
       </div>
     </div>
   );

@@ -175,7 +175,7 @@ NOTION_CLIENT_SECRET=xxx      # For future OAuth
 - No caching (fresh API calls each time)
 - Local generation only (PDFs not persisted)
 
-## Post-MVP Features (DO NOT BUILD YET)
+## Post-MVP Features
 
 ### Feature: Database Support (Priority: High)
 

@@ -4,6 +4,7 @@ import LetterheadEditor from './components/LetterheadEditor';
 import PropertyFilter from './components/PropertyFilter';
 import DownloadButton from './components/DownloadButton';
 import AuthStatus from './components/AuthStatus';
+import PreviewDocument from './components/PreviewDocument';
 import {
   fetchNotionPage,
   generatePdf,
@@ -14,13 +15,13 @@ import {
 } from './services/api';
 import './App.css';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 interface AppState {
   step: Step;
   notionUrl: string;
   notionToken: string;
-  pageData: NotionPageData | null;
+  pageData: NotionPageData[];  // Changed to array
   letterhead: LetterheadData;
   hiddenProperties: string[];
   loading: boolean;
@@ -35,7 +36,7 @@ function App() {
     step: 1,
     notionUrl: '',
     notionToken: '',
-    pageData: null,
+    pageData: [],  // Changed to empty array
     letterhead: {
       companyName: '',
       address: '',
@@ -87,18 +88,23 @@ function App() {
     }
   }, []);
 
-  // Step 1: Fetch Notion page
-  const handleFetchPage = async (url: string, token?: string) => {
+  // Step 1: Fetch Notion pages (can be multiple)
+  const handleFetchPage = async (urls: string, token?: string) => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const pageData = await fetchNotionPage(url, token);
+      // Split URLs if multiple (comma-separated)
+      const urlArray = urls.split(',').map(u => u.trim());
+
+      // Fetch all pages in parallel
+      const pageDataPromises = urlArray.map(url => fetchNotionPage(url, token));
+      const pagesData = await Promise.all(pageDataPromises);
 
       setState((prev) => ({
         ...prev,
-        notionUrl: url,
+        notionUrl: urls,
         notionToken: token || '',
-        pageData,
+        pageData: pagesData,
         step: 2,
         loading: false,
         error: null,
@@ -107,7 +113,7 @@ function App() {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch page',
+        error: error instanceof Error ? error.message : 'Failed to fetch pages',
       }));
     }
   };
@@ -133,10 +139,20 @@ function App() {
   };
 
   const handleNextFromLetterhead = () => {
-    setState((prev) => ({ ...prev, step: 3 }));
+    // Check if any pages have properties
+    const hasProperties = state.pageData.some(page =>
+      Object.keys(page.properties || {}).length > 0
+    );
+
+    // Skip property filter if no properties exist
+    if (hasProperties) {
+      setState((prev) => ({ ...prev, step: 3 }));
+    } else {
+      setState((prev) => ({ ...prev, step: 4 })); // Skip to preview
+    }
   };
 
-  // Step 3: Toggle property visibility
+  // Step 3: Property filter
   const handleToggleProperty = (propertyName: string) => {
     setState((prev) => ({
       ...prev,
@@ -150,24 +166,86 @@ function App() {
     setState((prev) => ({ ...prev, step: 4 }));
   };
 
-  // Step 4: Generate PDF
+  const handleBackToLetterheadFromFilter = () => {
+    setState((prev) => ({ ...prev, step: 2 }));
+  };
+
+  const handleBackToSelectFromLetterHead = () => {
+    setState((prev) => ({ ...prev, step: 1 }));
+  };
+
+  // Step 4: Preview navigation
+  const handleBackFromPreview = () => {
+    // Check if we have properties to go back to filter step
+    const hasProperties = state.pageData.some(page =>
+      Object.keys(page.properties || {}).length > 0
+    );
+
+    if (hasProperties) {
+      setState((prev) => ({ ...prev, step: 3 })); // Back to property filter
+    } else {
+      setState((prev) => ({ ...prev, step: 2 })); // Back to letterhead
+    }
+  };
+
+  const handleContinueFromPreview = () => {
+    setState((prev) => ({ ...prev, step: 5 }));
+  };
+
+  // Step 5: Generate PDFs (single or batch)
   const handleGeneratePdf = async () => {
-    if (!state.pageData) return;
+    if (state.pageData.length === 0) return;
 
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const pdfBlob = await generatePdf({
-        title: state.pageData!.title,
-        blocks: state.pageData!.blocks,
-        letterhead: state.letterhead,
-        properties: state.pageData!.properties,
-        hiddenProperties: state.hiddenProperties,
-      });
+      if (state.pageData.length === 1) {
+        // Single PDF
+        const page = state.pageData[0];
+        const pdfBlob = await generatePdf({
+          title: page.title,
+          blocks: page.blocks,
+          letterhead: state.letterhead,
+          properties: page.properties,
+          hiddenProperties: state.hiddenProperties,
+        });
 
-      // Trigger download
-      const filename = `${state.pageData.title || 'notion-export'}.pdf`;
-      downloadPdf(pdfBlob, filename);
+        const filename = `${page.title || 'notion-export'}.pdf`;
+        downloadPdf(pdfBlob, filename);
+      } else {
+        // Multiple PDFs - generate batch
+        const response = await fetch('/api/pdf/batch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            pages: state.pageData.map(page => ({
+              title: page.title,
+              blocks: page.blocks,
+              properties: page.properties,
+            })),
+            letterhead: state.letterhead,
+            hiddenProperties: state.hiddenProperties,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate PDFs');
+        }
+
+        // Download zip file
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'notion-exports.zip';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
       setState((prev) => ({ ...prev, loading: false, error: null }));
     } catch (error) {
@@ -186,7 +264,7 @@ function App() {
       step: 1,
       notionUrl: '',
       notionToken: '',
-      pageData: null,
+      pageData: [],
       letterhead: {
         companyName: '',
         address: '',
@@ -216,22 +294,34 @@ function App() {
       <main className="app-main">
         {/* Progress indicator */}
         <div className="progress-steps">
-          {[1, 2, 3, 4].map((stepNum) => (
-            <div
-              key={stepNum}
-              className={`progress-step ${state.step === stepNum ? 'active' : ''} ${
-                state.step > stepNum ? 'completed' : ''
-              }`}
-            >
-              <div className="step-circle">{stepNum}</div>
-              <div className="step-label">
-                {stepNum === 1 && 'Choose Page(s)'}
-                {stepNum === 2 && 'Letterhead'}
-                {stepNum === 3 && 'Filter'}
-                {stepNum === 4 && 'Generate'}
+          {[1, 2, 3, 4, 5].map((stepNum) => {
+            // Hide property filter step indicator if no properties
+            const hasProperties = state.pageData.some(page =>
+              Object.keys(page.properties || {}).length > 0
+            );
+
+            if (stepNum === 3 && !hasProperties) {
+              return null; // Don't show step 3 indicator if no properties
+            }
+
+            return (
+              <div
+                key={stepNum}
+                className={`progress-step ${state.step === stepNum ? 'active' : ''} ${
+                  state.step > stepNum ? 'completed' : ''
+                }`}
+              >
+                <div className="step-circle">{stepNum}</div>
+                <div className="step-label">
+                  {stepNum === 1 && 'Choose Page(s)'}
+                  {stepNum === 2 && 'Letterhead'}
+                  {stepNum === 3 && 'Property Filter'}
+                  {stepNum === 4 && 'Preview'}
+                  {stepNum === 5 && 'Generate'}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Step content */}
@@ -250,24 +340,36 @@ function App() {
               letterhead={state.letterhead}
               onUpdate={handleUpdateLetterhead}
               onNext={handleNextFromLetterhead}
+              onBack={handleBackToSelectFromLetterHead}
             />
           )}
 
-          {state.step === 3 && state.pageData && (
+          {state.step === 3 && state.pageData.length > 0 && (
             <PropertyFilter
-              properties={state.pageData.properties}
+              properties={state.pageData[0].properties}
               hiddenProperties={state.hiddenProperties}
               onToggle={handleToggleProperty}
               onNext={handleNextFromFilter}
             />
           )}
 
-          {state.step === 4 && (
+          {state.step === 4 && state.pageData.length > 0 && (
+            <PreviewDocument
+              pages={state.pageData}
+              letterhead={state.letterhead}
+              hiddenProperties={state.hiddenProperties}
+              onBack={handleBackFromPreview}
+              onContinue={handleContinueFromPreview}
+            />
+          )}
+
+          {state.step === 5 && (
             <DownloadButton
               onGenerate={handleGeneratePdf}
               loading={state.loading}
               error={state.error}
               onReset={handleReset}
+              pageCount={state.pageData.length}
             />
           )}
         </div>

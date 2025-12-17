@@ -17,7 +17,7 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
 
   // Page selector state
   const [pages, setPages] = useState<NotionPage[]>([]);
-  const [selectedPageId, setSelectedPageId] = useState('');
+  const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
   const [loadingPages, setLoadingPages] = useState(false);
   const [pagesError, setPagesError] = useState<string | null>(null);
 
@@ -36,7 +36,7 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
       setPages(response.pages);
       // Auto-select first page if available
       if (response.pages.length > 0) {
-        setSelectedPageId(response.pages[0].id);
+        setSelectedPageIds([response.pages[0].id]);
       }
     } catch (err) {
       setPagesError(err instanceof Error ? err.message : 'Failed to load pages');
@@ -45,14 +45,38 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
     }
   };
 
+  const togglePageSelection = (pageId: string) => {
+    setSelectedPageIds(prev => {
+      if (prev.includes(pageId)) {
+        return prev.filter(id => id !== pageId);
+      } else {
+        // Select
+        return [...prev, pageId];
+      }
+    });
+  };
+
+  const selectAllPages = () => {
+    setSelectedPageIds(pages.map(p => p.id));
+  };
+
+  const deselectAllPages = () => {
+    // Keep first page selected
+    if (pages.length > 0) {
+      setSelectedPageIds([]);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (authenticated) {
-      // Use selected page from dropdown
-      const selectedPage = pages.find(p => p.id === selectedPageId);
-      if (selectedPage) {
-        onFetch(selectedPage.url);
+      // Use selected pages - pass URLs as comma-separated string
+      const selectedPages = pages.filter(p => selectedPageIds.includes(p.id));
+      if (selectedPages.length > 0) {
+        // Pass multiple URLs joined by comma
+        const urls = selectedPages.map(p => p.url).join(',');
+        onFetch(urls);
       }
     } else {
       // Manual URL input
@@ -74,7 +98,7 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
 
   return (
     <div className="notion-url-input">
-      <h2>Step 1: Connect & Enter Page URL</h2>
+      <h2>Step 1: {!authenticated ? "Connect" : "Select Pages" }</h2>
 
       {!authenticated ? (
         <>
@@ -160,7 +184,7 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
       ) : (
         <>
           <p className="description">
-            Select a page from your workspace to export
+            Select a page/pages from your workspace to export
           </p>
 
           {loadingPages ? (
@@ -182,22 +206,50 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="page-select">Select a Page</label>
-                <select
-                  id="page-select"
-                  value={selectedPageId}
-                  onChange={(e) => setSelectedPageId(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="page-select"
-                >
+                <div className="page-select-header">
+                  <label>Select Pages</label>
+                  <div className="select-actions">
+                    <button
+                      type="button"
+                      onClick={selectAllPages}
+                      className="select-action-button"
+                      disabled={loading}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deselectAllPages}
+                      className="select-action-button"
+                      disabled={loading}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="page-list">
                   {pages.map((page) => (
-                    <option key={page.id} value={page.id}>
-                      {getPageIcon(page)} {page.title}
-                    </option>
+                    <div
+                      key={page.id}
+                      className={`page-item ${selectedPageIds.includes(page.id) ? 'selected' : ''}`}
+                      onClick={() => togglePageSelection(page.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedPageIds.includes(page.id)}
+                        readOnly
+                        disabled={loading}
+                        tabIndex={-1}
+                      />
+                      <span className="page-icon">{getPageIcon(page)}</span>
+                      <span className="page-title">{page.title}</span>
+                    </div>
                   ))}
-                </select>
-                <small>Showing recently edited pages from your workspace</small>
+                </div>
+                <small>
+                  {selectedPageIds.length} page{selectedPageIds.length !== 1 ? 's' : ''} selected
+                </small>
               </div>
 
               {error && (
@@ -206,8 +258,8 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
                 </div>
               )}
 
-              <button type="submit" disabled={loading || !selectedPageId}>
-                {loading ? 'Fetching...' : 'Fetch Page'}
+              <button type="submit" disabled={loading || selectedPageIds.length === 0}>
+                {loading ? 'Loading...' : `Select ${selectedPageIds.length} Page${selectedPageIds.length !== 1 ? 's' : ''}`}
               </button>
             </form>
           )}

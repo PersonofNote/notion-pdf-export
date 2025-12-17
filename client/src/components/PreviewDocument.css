@@ -1,0 +1,282 @@
+.preview-document {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.preview-document h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.preview-document .description {
+  color: #6b6b6b;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Preview Container */
+.preview-container {
+  background: #f5f5f5;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.preview-page {
+  background: white;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.preview-page:last-child {
+  margin-bottom: 0;
+}
+
+.page-number {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #6b6b6b;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9e9e7;
+}
+
+/* Letterhead */
+.letterhead {
+  margin-bottom: 1.5rem;
+}
+
+.letterhead .logo {
+  margin-bottom: 1rem;
+}
+
+.letterhead .logo img {
+  max-height: 80px;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.letterhead .company-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.letterhead .contact-info p {
+  margin: 0.25rem 0;
+  color: #6b6b6b;
+  font-size: 0.9rem;
+}
+
+.letterhead .contact-details {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #6b6b6b;
+}
+
+.letterhead-divider {
+  border: none;
+  border-top: 2px solid #e9e9e7;
+  margin: 1.5rem 0;
+}
+
+/* Page Content */
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.properties {
+  background: #f7f6f3;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.property {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #37352f;
+}
+
+.property strong {
+  color: #1a1a1a;
+  margin-right: 0.5rem;
+}
+
+/* Blocks */
+.blocks {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #37352f;
+}
+
+.blocks h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 1em 0 0.5em 0;
+  line-height: 1.2;
+}
+
+.blocks h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 0.8em 0 0.4em 0;
+  line-height: 1.3;
+}
+
+.blocks h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 0.6em 0 0.3em 0;
+  line-height: 1.4;
+}
+
+.blocks p {
+  margin: 0.5em 0;
+}
+
+.blocks ul,
+.blocks ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.blocks li {
+  margin: 0.25em 0;
+}
+
+.blocks code {
+  background: #f3f3f1;
+  color: #eb5757;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.blocks pre {
+  background: #f7f6f3;
+  border: 1px solid #e9e9e7;
+  border-radius: 3px;
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+.blocks pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.blocks blockquote {
+  border-left: 3px solid #d3d3d3;
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: #6b6b6b;
+}
+
+.blocks hr {
+  border: none;
+  border-top: 1px solid #e9e9e7;
+  margin: 1.5em 0;
+}
+
+.blocks a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.blocks .callout {
+  display: flex;
+  background: #f7f6f3;
+  border-radius: 3px;
+  padding: 1em;
+  margin: 0.5em 0;
+}
+
+.blocks .callout-icon {
+  font-size: 1.2em;
+  margin-right: 0.5em;
+}
+
+.blocks .todo {
+  margin: 0.25em 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.blocks .todo input[type="checkbox"] {
+  margin: 0;
+}
+
+.blocks .unsupported-block,
+.blocks .error-block {
+  background: #fff4e5;
+  border: 1px dashed #ff9800;
+  padding: 0.5em;
+  margin: 0.5em 0;
+  border-radius: 3px;
+  color: #e65100;
+  font-size: 0.85em;
+}
+
+/* Actions */
+.preview-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.back-button,
+.continue-button {
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.back-button {
+  background-color: white;
+  color: #0066cc;
+  border: 1px solid #0066cc;
+}
+
+.back-button:hover {
+  background-color: #f0f7ff;
+}
+
+.continue-button {
+  background-color: #0066cc;
+  color: white;
+}
+
+.continue-button:hover {
+  background-color: #0052a3;
+}
+
+.preview-note {
+  text-align: center;
+  color: #6b6b6b;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+  font-style: italic;
+}
