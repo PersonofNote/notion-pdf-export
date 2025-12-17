@@ -1,11 +1,12 @@
 import { BlocksRenderer } from './BlockRenderer';
-import type { NotionPageData, LetterheadData } from '../services/api';
+import type { NotionResourceData, LetterheadData } from '../services/api';
 import './PreviewDocument.css';
 
 interface PreviewDocumentProps {
-  pages: NotionPageData[];
+  pages: NotionResourceData[];
   letterhead: LetterheadData;
   hiddenProperties: string[];
+  hiddenColumns: string[];
   onBack: () => void;
   onContinue: () => void;
 }
@@ -14,6 +15,7 @@ export default function PreviewDocument({
   pages,
   letterhead,
   hiddenProperties,
+  hiddenColumns,
   onBack,
   onContinue
 }: PreviewDocumentProps) {
@@ -26,11 +28,11 @@ export default function PreviewDocument({
       </p>
 
       <div className="preview-container">
-        {pages.map((page, pageIndex) => (
-          <div key={pageIndex} className="preview-page">
+        {pages.map((resource, index) => (
+          <div key={index} className="preview-page">
             {pages.length > 1 && (
               <div className="page-number">
-                Page {pageIndex + 1} of {pages.length}
+                {resource.type === 'database' ? 'Database' : 'Page'} {index + 1} of {pages.length}
               </div>
             )}
 
@@ -54,27 +56,81 @@ export default function PreviewDocument({
 
               <hr className="letterhead-divider" />
 
-              {/* Page Title */}
-              <h2 className="page-title">{page.title || 'Untitled'}</h2>
+              {resource.type === 'database' ? (
+                /* Database View */
+                <>
+                  {/* Database Title */}
+                  <h2 className="page-title">
+                    {resource.icon && <span className="title-icon">{resource.icon}</span>}
+                    {resource.title || 'Untitled Database'}
+                  </h2>
 
-              {/* Properties */}
-              {Object.keys(page.properties).length > 0 && (
-                <div className="properties">
-                  {Object.entries(page.properties).map(([key, value]) => {
-                    if (hiddenProperties.includes(key)) return null;
-                    return (
-                      <div key={key} className="property">
-                        <strong>{key}:</strong> {value}
-                      </div>
-                    );
-                  })}
-                </div>
+                  {/* Database Table */}
+                  <div className="database-table-container">
+                    <table className="database-table">
+                      <thead>
+                        <tr>
+                          {Object.keys(resource.schema)
+                            .filter(col => !hiddenColumns.includes(col))
+                            .map(columnName => (
+                              <th key={columnName}>
+                                {columnName}
+                                <span className="column-type">
+                                  ({resource.schema[columnName].type})
+                                </span>
+                              </th>
+                            ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resource.rows.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {Object.keys(resource.schema)
+                              .filter(col => !hiddenColumns.includes(col))
+                              .map(columnName => (
+                                <td key={columnName}>
+                                  {row.properties[columnName] || '—'}
+                                </td>
+                              ))}
+                          </tr>
+                        ))}
+                        {resource.rows.length === 0 && (
+                          <tr>
+                            <td colSpan={Object.keys(resource.schema).filter(col => !hiddenColumns.includes(col)).length}>
+                              <em>No rows in this database</em>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                /* Page View */
+                <>
+                  {/* Page Title */}
+                  <h2 className="page-title">{resource.title || 'Untitled'}</h2>
+
+                  {/* Properties */}
+                  {Object.keys(resource.properties).length > 0 && (
+                    <div className="properties">
+                      {Object.entries(resource.properties).map(([key, value]) => {
+                        if (hiddenProperties.includes(key)) return null;
+                        return (
+                          <div key={key} className="property">
+                            <strong>{key}:</strong> {value}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Blocks */}
+                  <div className="blocks">
+                    <BlocksRenderer blocks={resource.blocks} />
+                  </div>
+                </>
               )}
-
-              {/* Blocks */}
-              <div className="blocks">
-                <BlocksRenderer blocks={page.blocks} />
-              </div>
             </div>
           </div>
         ))}

@@ -280,3 +280,63 @@
   margin-top: 1rem;
   font-style: italic;
 }
+
+/* Database Table Styles */
+.database-table-container {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.database-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.database-table thead {
+  background-color: #f7f6f3;
+  border-bottom: 2px solid #e9e9e7;
+}
+
+.database-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #37352f;
+  border: 1px solid #e9e9e7;
+  white-space: nowrap;
+}
+
+.database-table .column-type {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #999;
+  margin-top: 0.2rem;
+}
+
+.database-table td {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e9e9e7;
+  color: #37352f;
+  vertical-align: top;
+}
+
+.database-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.database-table tbody tr:hover {
+  background-color: #f1f1f0;
+}
+
+.database-table td em {
+  color: #999;
+}
+
+.title-icon {
+  margin-right: 0.5rem;
+  font-size: 1.5rem;
+}

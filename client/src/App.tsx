@@ -10,7 +10,7 @@ import {
   generatePdf,
   downloadPdf,
   checkAuthStatus,
-  type NotionPageData,
+  type NotionResourceData,
   type LetterheadData,
 } from './services/api';
 import './App.css';
@@ -21,9 +21,10 @@ interface AppState {
   step: Step;
   notionUrl: string;
   notionToken: string;
-  pageData: NotionPageData[];  // Changed to array
+  pageData: NotionResourceData[];  // Can be pages or databases
   letterhead: LetterheadData;
-  hiddenProperties: string[];
+  hiddenProperties: string[];  // For page properties
+  hiddenColumns: string[];  // For database columns
   loading: boolean;
   error: string | null;
   authenticated: boolean;
@@ -36,14 +37,15 @@ function App() {
     step: 1,
     notionUrl: '',
     notionToken: '',
-    pageData: [],  // Changed to empty array
+    pageData: [],  // Can contain pages and/or databases
     letterhead: {
       companyName: '',
       address: '',
       phone: '',
       email: '',
     },
-    hiddenProperties: [],
+    hiddenProperties: [],  // For page properties
+    hiddenColumns: [],  // For database columns
     loading: false,
     error: null,
     authenticated: false,
@@ -127,7 +129,7 @@ function App() {
       workspaceIcon: undefined,
       // Reset to step 1 if user was in the middle of a flow
       step: 1,
-      pageData: null,
+      pageData: [],
       notionUrl: '',
       notionToken: '',
     }));
@@ -139,26 +141,39 @@ function App() {
   };
 
   const handleNextFromLetterhead = () => {
-    // Check if any pages have properties
-    const hasProperties = state.pageData.some(page =>
-      Object.keys(page.properties || {}).length > 0
-    );
+    // Check if any resources have properties/columns to filter
+    const hasFilterableFields = state.pageData.some(resource => {
+      if (resource.type === 'database') {
+        return Object.keys(resource.schema).length > 0;
+      } else {
+        return Object.keys(resource.properties || {}).length > 0;
+      }
+    });
 
-    // Skip property filter if no properties exist
-    if (hasProperties) {
+    // Skip property filter if no filterable fields exist
+    if (hasFilterableFields) {
       setState((prev) => ({ ...prev, step: 3 }));
     } else {
       setState((prev) => ({ ...prev, step: 4 })); // Skip to preview
     }
   };
 
-  // Step 3: Property filter
+  // Step 3: Property/Column filter
   const handleToggleProperty = (propertyName: string) => {
     setState((prev) => ({
       ...prev,
       hiddenProperties: prev.hiddenProperties.includes(propertyName)
         ? prev.hiddenProperties.filter((p) => p !== propertyName)
         : [...prev.hiddenProperties, propertyName],
+    }));
+  };
+
+  const handleToggleColumn = (columnName: string) => {
+    setState((prev) => ({
+      ...prev,
+      hiddenColumns: prev.hiddenColumns.includes(columnName)
+        ? prev.hiddenColumns.filter((c) => c !== columnName)
+        : [...prev.hiddenColumns, columnName],
     }));
   };
 
@@ -176,12 +191,16 @@ function App() {
 
   // Step 4: Preview navigation
   const handleBackFromPreview = () => {
-    // Check if we have properties to go back to filter step
-    const hasProperties = state.pageData.some(page =>
-      Object.keys(page.properties || {}).length > 0
-    );
+    // Check if we have properties/columns to go back to filter step
+    const hasFilterableFields = state.pageData.some(resource => {
+      if (resource.type === 'database') {
+        return Object.keys(resource.schema).length > 0;
+      } else {
+        return Object.keys(resource.properties || {}).length > 0;
+      }
+    });
 
-    if (hasProperties) {
+    if (hasFilterableFields) {
       setState((prev) => ({ ...prev, step: 3 })); // Back to property filter
     } else {
       setState((prev) => ({ ...prev, step: 2 })); // Back to letterhead
@@ -201,16 +220,29 @@ function App() {
     try {
       if (state.pageData.length === 1) {
         // Single PDF
-        const page = state.pageData[0];
-        const pdfBlob = await generatePdf({
-          title: page.title,
-          blocks: page.blocks,
-          letterhead: state.letterhead,
-          properties: page.properties,
-          hiddenProperties: state.hiddenProperties,
-        });
+        const resource = state.pageData[0];
 
-        const filename = `${page.title || 'notion-export'}.pdf`;
+        let pdfRequest;
+        if (resource.type === 'database') {
+          pdfRequest = {
+            type: 'database' as const,
+            database: resource,
+            letterhead: state.letterhead,
+            hiddenColumns: state.hiddenColumns,
+          };
+        } else {
+          pdfRequest = {
+            type: 'page' as const,
+            title: resource.title,
+            blocks: resource.blocks,
+            letterhead: state.letterhead,
+            properties: resource.properties,
+            hiddenProperties: state.hiddenProperties,
+          };
+        }
+
+        const pdfBlob = await generatePdf(pdfRequest);
+        const filename = `${resource.title || 'notion-export'}.pdf`;
         downloadPdf(pdfBlob, filename);
       } else {
         // Multiple PDFs - generate batch
@@ -221,13 +253,10 @@ function App() {
           },
           credentials: 'include',
           body: JSON.stringify({
-            pages: state.pageData.map(page => ({
-              title: page.title,
-              blocks: page.blocks,
-              properties: page.properties,
-            })),
+            pages: state.pageData,  // Now includes full resource data with type
             letterhead: state.letterhead,
             hiddenProperties: state.hiddenProperties,
+            hiddenColumns: state.hiddenColumns,
           }),
         });
 
@@ -272,6 +301,7 @@ function App() {
         email: '',
       },
       hiddenProperties: [],
+      hiddenColumns: [],
       loading: false,
       error: null,
     });
@@ -295,13 +325,17 @@ function App() {
         {/* Progress indicator */}
         <div className="progress-steps">
           {[1, 2, 3, 4, 5].map((stepNum) => {
-            // Hide property filter step indicator if no properties
-            const hasProperties = state.pageData.some(page =>
-              Object.keys(page.properties || {}).length > 0
-            );
+            // Hide property filter step indicator if no filterable fields
+            const hasFilterableFields = state.pageData.some(resource => {
+              if (resource.type === 'database') {
+                return Object.keys(resource.schema).length > 0;
+              } else {
+                return Object.keys(resource.properties || {}).length > 0;
+              }
+            });
 
-            if (stepNum === 3 && !hasProperties) {
-              return null; // Don't show step 3 indicator if no properties
+            if (stepNum === 3 && !hasFilterableFields) {
+              return null; // Don't show step 3 indicator if no filterable fields
             }
 
             return (
@@ -346,10 +380,13 @@ function App() {
 
           {state.step === 3 && state.pageData.length > 0 && (
             <PropertyFilter
-              properties={state.pageData[0].properties}
+              resources={state.pageData}
               hiddenProperties={state.hiddenProperties}
-              onToggle={handleToggleProperty}
+              hiddenColumns={state.hiddenColumns}
+              onToggleProperty={handleToggleProperty}
+              onToggleColumn={handleToggleColumn}
               onNext={handleNextFromFilter}
+              onBack={handleBackToLetterheadFromFilter}
             />
           )}
 
@@ -358,6 +395,7 @@ function App() {
               pages={state.pageData}
               letterhead={state.letterhead}
               hiddenProperties={state.hiddenProperties}
+              hiddenColumns={state.hiddenColumns}
               onBack={handleBackFromPreview}
               onContinue={handleContinueFromPreview}
             />

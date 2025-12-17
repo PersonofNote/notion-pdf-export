@@ -21,6 +21,8 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
   const [loadingPages, setLoadingPages] = useState(false);
   const [pagesError, setPagesError] = useState<string | null>(null);
 
+  useEffect(() => {
+    console.log(pages)},[pages])
   // Fetch pages when authenticated
   useEffect(() => {
     if (authenticated) {

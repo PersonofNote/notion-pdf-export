@@ -6,33 +6,57 @@ const router = express.Router();
 
 /**
  * POST /api/pdf/generate
- * Generate a branded PDF from Notion content
+ * Generate a branded PDF from Notion content (page or database)
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
-    const { title, blocks, letterhead, properties, hiddenProperties } = req.body;
+    const { type, title, blocks, database, letterhead, properties, hiddenProperties, hiddenColumns } = req.body;
 
     // Validation
-    if (!blocks || !Array.isArray(blocks)) {
-      return res.status(400).json({
-        error: 'Missing or invalid field: blocks must be an array',
-      });
-    }
-
     if (!letterhead || !letterhead.companyName) {
       return res.status(400).json({
         error: 'Missing required field: letterhead.companyName',
       });
     }
 
-    // Prepare request
-    const pdfRequest: PdfGenerationRequest = {
-      title: title || 'Untitled',
-      blocks,
-      letterhead,
-      properties: properties || {},
-      hiddenProperties: hiddenProperties || [],
-    };
+    let pdfRequest: PdfGenerationRequest;
+    let filename: string;
+
+    if (type === 'database') {
+      // Database PDF generation
+      if (!database) {
+        return res.status(400).json({
+          error: 'Missing required field: database',
+        });
+      }
+
+      pdfRequest = {
+        type: 'database',
+        database,
+        letterhead,
+        hiddenColumns: hiddenColumns || [],
+      };
+
+      filename = database.title || 'database-export';
+    } else {
+      // Page PDF generation (default)
+      if (!blocks || !Array.isArray(blocks)) {
+        return res.status(400).json({
+          error: 'Missing or invalid field: blocks must be an array',
+        });
+      }
+
+      pdfRequest = {
+        type: 'page',
+        title: title || 'Untitled',
+        blocks,
+        letterhead,
+        properties: properties || {},
+        hiddenProperties: hiddenProperties || [],
+      };
+
+      filename = title || 'notion-export';
+    }
 
     // Generate PDF
     const pdfBuffer = await generatePdf(pdfRequest);
@@ -41,7 +65,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(title || 'notion-export')}.pdf"`
+      `attachment; filename="${encodeURIComponent(filename)}.pdf"`
     );
     res.setHeader('Content-Length', pdfBuffer.length);
 
@@ -58,10 +82,11 @@ router.post('/generate', async (req: Request, res: Response) => {
 /**
  * POST /api/pdf/batch
  * Generate multiple PDFs and return as a zip file
+ * Supports both pages and databases
  */
 router.post('/batch', async (req: Request, res: Response) => {
   try {
-    const { pages, letterhead, hiddenProperties } = req.body;
+    const { pages, letterhead, hiddenProperties, hiddenColumns } = req.body;
 
     // Validation
     if (!pages || !Array.isArray(pages) || pages.length === 0) {
@@ -82,19 +107,36 @@ router.post('/batch', async (req: Request, res: Response) => {
     const pdfBuffers: { filename: string; buffer: Buffer }[] = [];
 
     for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      const pdfRequest: PdfGenerationRequest = {
-        title: page.title || `Untitled-${i + 1}`,
-        blocks: page.blocks,
-        letterhead,
-        properties: page.properties || {},
-        hiddenProperties: hiddenProperties || [],
-      };
+      const item = pages[i];
+      let pdfRequest: PdfGenerationRequest;
+      let title: string;
+
+      if (item.type === 'database') {
+        // Database item
+        pdfRequest = {
+          type: 'database',
+          database: item,
+          letterhead,
+          hiddenColumns: hiddenColumns || [],
+        };
+        title = item.title || `Database-${i + 1}`;
+      } else {
+        // Page item (default)
+        pdfRequest = {
+          type: 'page',
+          title: item.title || `Untitled-${i + 1}`,
+          blocks: item.blocks,
+          letterhead,
+          properties: item.properties || {},
+          hiddenProperties: hiddenProperties || [],
+        };
+        title = item.title || `Untitled-${i + 1}`;
+      }
 
       const pdfBuffer = await generatePdf(pdfRequest);
 
       // Sanitize filename
-      const sanitizedTitle = (page.title || `Untitled-${i + 1}`)
+      const sanitizedTitle = title
         .replace(/[^a-z0-9]/gi, '_')
         .toLowerCase();
 
@@ -103,7 +145,7 @@ router.post('/batch', async (req: Request, res: Response) => {
         buffer: pdfBuffer,
       });
 
-      console.log(`Generated PDF ${i + 1}/${pages.length}: ${page.title}`);
+      console.log(`Generated PDF ${i + 1}/${pages.length}: ${title}`);
     }
 
     // Create zip archive

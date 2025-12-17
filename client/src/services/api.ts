@@ -1,10 +1,34 @@
 // Types for API requests and responses
 export interface NotionPageData {
+  type: 'page';
   pageId: string;
   title: string;
   properties: Record<string, string>;
   blocks: any[];
 }
+
+export interface DatabaseSchema {
+  [columnName: string]: {
+    id: string;
+    type: string;
+  };
+}
+
+export interface DatabaseRow {
+  id: string;
+  properties: Record<string, any>;
+}
+
+export interface NotionDatabaseData {
+  type: 'database';
+  databaseId: string;
+  title: string;
+  schema: DatabaseSchema;
+  rows: DatabaseRow[];
+  icon?: string;
+}
+
+export type NotionResourceData = NotionPageData | NotionDatabaseData;
 
 export interface LetterheadData {
   logoUrl?: string;
@@ -19,13 +43,23 @@ export interface FetchNotionPageRequest {
   notionToken?: string;
 }
 
-export interface GeneratePdfRequest {
+export interface PageGeneratePdfRequest {
+  type: 'page';
   title: string;
   blocks: any[];
   letterhead: LetterheadData;
   properties?: Record<string, string>;
   hiddenProperties?: string[];
 }
+
+export interface DatabaseGeneratePdfRequest {
+  type: 'database';
+  database: NotionDatabaseData;
+  letterhead: LetterheadData;
+  hiddenColumns?: string[];
+}
+
+export type GeneratePdfRequest = PageGeneratePdfRequest | DatabaseGeneratePdfRequest;
 
 export interface AuthStatusResponse {
   authenticated: boolean;
@@ -37,6 +71,7 @@ export interface NotionPage {
   id: string;
   title: string;
   url: string;
+  type: 'page' | 'database';
   lastEditedTime: string;
   icon?: {
     type: string;
@@ -57,13 +92,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
   : '/api';
 
 /**
- * Fetch Notion page content and metadata
+ * Fetch Notion resource (page or database) content and metadata
  * Token is optional if user is authenticated via OAuth
  */
 export async function fetchNotionPage(
   pageUrl: string,
   notionToken?: string
-): Promise<NotionPageData> {
+): Promise<NotionResourceData> {
   const response = await fetch(`${API_BASE_URL}/notion/fetch`, {
     method: 'POST',
     headers: {

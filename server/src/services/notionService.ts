@@ -3,8 +3,43 @@ import type {
   PageObjectResponse,
   PartialPageObjectResponse,
   BlockObjectResponse,
-  PartialBlockObjectResponse
+  PartialBlockObjectResponse,
+  DatabaseObjectResponse,
+  QueryDatabaseResponse
 } from '@notionhq/client/build/src/api-endpoints';
+
+export type ResourceType = 'page' | 'database';
+
+export interface DatabaseSchema {
+  [columnName: string]: {
+    id: string;
+    type: string;
+  };
+}
+
+export interface DatabaseRow {
+  id: string;
+  properties: Record<string, any>;
+}
+
+export interface NotionPageData {
+  type: 'page';
+  pageId: string;
+  title: string;
+  properties: Record<string, string>;
+  blocks: (BlockObjectResponse | PartialBlockObjectResponse)[];
+}
+
+export interface NotionDatabaseData {
+  type: 'database';
+  databaseId: string;
+  title: string;
+  schema: DatabaseSchema;
+  rows: DatabaseRow[];
+  icon?: string;
+}
+
+export type NotionResourceData = NotionPageData | NotionDatabaseData;
 
 /**
  * Extract page ID from various Notion URL formats
@@ -63,9 +98,181 @@ function formatPageId(pageId: string): string {
 }
 
 /**
+ * Detect if a resource is a page or database
+ */
+export async function detectResourceType(resourceId: string, token: string): Promise<ResourceType> {
+  const notion = new Client({ auth: token });
+  const formattedId = formatPageId(resourceId);
+
+  try {
+    // Try to fetch as page first
+    await notion.pages.retrieve({ page_id: formattedId });
+    return 'page';
+  } catch (error: any) {
+    // If it fails with "is a database" error, it's a database
+    if (error.message?.includes('is a database') || error.code === 'object_not_found') {
+      try {
+        // Verify it's actually a database
+        await notion.databases.retrieve({ database_id: formattedId });
+        return 'database';
+      } catch (dbError: any) {
+        // If both fail, re-throw original error
+        throw error;
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Extract property value as string for display
+ */
+function extractPropertyValue(property: any): string {
+  if (!property) return '';
+
+  switch (property.type) {
+    case 'title':
+      return property.title.map((t: any) => t.plain_text).join('');
+    case 'rich_text':
+      return property.rich_text.map((t: any) => t.plain_text).join('');
+    case 'number':
+      return property.number !== null ? property.number.toString() : '';
+    case 'select':
+      return property.select?.name || '';
+    case 'multi_select':
+      return property.multi_select.map((s: any) => s.name).join(', ');
+    case 'status':
+      return property.status?.name || '';
+    case 'date':
+      return property.date?.start || '';
+    case 'checkbox':
+      return property.checkbox ? 'Yes' : 'No';
+    case 'url':
+      return property.url || '';
+    case 'email':
+      return property.email || '';
+    case 'phone_number':
+      return property.phone_number || '';
+    case 'people':
+      return property.people.map((p: any) => p.name || 'Unknown').join(', ');
+    case 'files':
+      return property.files.map((f: any) => f.name).join(', ');
+    case 'created_time':
+      return property.created_time;
+    case 'last_edited_time':
+      return property.last_edited_time;
+    case 'created_by':
+      return 'User';
+    case 'last_edited_by':
+      return 'User';
+    default:
+      return '';
+  }
+}
+
+/**
+ * Fetch a Notion database with all its rows
+ */
+export async function fetchNotionDatabase(databaseUrl: string, token: string): Promise<NotionDatabaseData> {
+  try {
+    const notion = new Client({ auth: token });
+
+    // Extract and format database ID
+    const rawDatabaseId = extractPageId(databaseUrl); // Same extraction logic works for databases
+    const databaseId = formatPageId(rawDatabaseId);
+
+    console.log('Fetching Notion database:', databaseId);
+
+    // Fetch database metadata
+    const database = await notion.databases.retrieve({ database_id: databaseId }) as DatabaseObjectResponse;
+
+    // Extract title
+    let title = 'Untitled Database';
+    if (database.title && database.title.length > 0) {
+      title = database.title[0].plain_text;
+    }
+
+    // Extract icon
+    let icon: string | undefined;
+    if (database.icon) {
+      if (database.icon.type === 'emoji') {
+        icon = database.icon.emoji;
+      }
+    }
+
+    // Extract schema (column definitions)
+    const schema: DatabaseSchema = {};
+    Object.entries(database.properties).forEach(([name, property]) => {
+      schema[name] = {
+        id: property.id,
+        type: property.type
+      };
+    });
+
+    // Fetch all rows (with pagination)
+    const rows: DatabaseRow[] = [];
+    let hasMore = true;
+    let startCursor: string | undefined = undefined;
+    let pageCount = 0;
+    const MAX_PAGES = 5; // Limit to 500 rows (100 per page) for MVP
+
+    while (hasMore && pageCount < MAX_PAGES) {
+      const response: QueryDatabaseResponse = await notion.databases.query({
+        database_id: databaseId,
+        start_cursor: startCursor
+      });
+
+      // Process rows
+      response.results.forEach((page) => {
+        if ('properties' in page) {
+          const rowData: Record<string, string> = {};
+          Object.entries(page.properties).forEach(([name, property]) => {
+            rowData[name] = extractPropertyValue(property);
+          });
+
+          rows.push({
+            id: page.id,
+            properties: rowData
+          });
+        }
+      });
+
+      hasMore = response.has_more;
+      startCursor = response.next_cursor || undefined;
+      pageCount++;
+    }
+
+    console.log(`Fetched ${rows.length} rows from database`);
+
+    return {
+      type: 'database',
+      databaseId: rawDatabaseId,
+      title,
+      schema,
+      rows,
+      icon
+    };
+  } catch (error: any) {
+    console.error('Error fetching Notion database:', error);
+
+    if (error.code === 'object_not_found') {
+      throw new Error(
+        'Database not found. To fix: (1) Open the database in Notion, (2) Click "..." menu → "Connections" or "Add connections", (3) Add your integration to that database.'
+      );
+    } else if (error.code === 'unauthorized') {
+      throw new Error('Invalid Notion token. Make sure you copied the entire "Internal Integration Secret" from notion.so/my-integrations');
+    } else if (error.code === 'restricted_resource') {
+      throw new Error('Access restricted. Open the database in Notion, click "..." → "Add connections", and select your integration.');
+    }
+
+    throw new Error(`Failed to fetch Notion database: ${error.message}`);
+  }
+}
+
+/**
  * Fetch a Notion page with all its content blocks
  */
-export async function fetchNotionPage(pageUrl: string, token: string) {
+export async function fetchNotionPage(pageUrl: string, token: string): Promise<NotionPageData> {
   try {
     const notion = new Client({ auth: token });
 
@@ -132,6 +339,7 @@ export async function fetchNotionPage(pageUrl: string, token: string) {
     }
 
     return {
+      type: 'page',
       pageId: rawPageId,
       title,
       properties,
@@ -149,11 +357,29 @@ export async function fetchNotionPage(pageUrl: string, token: string) {
     } else if (error.code === 'restricted_resource') {
       throw new Error('Access restricted. Open the page in Notion, click "..." → "Add connections", and select your integration.');
     } else if (error.message?.includes('is a database')) {
-      throw new Error(
-        'Database export not supported yet. To export database content: (1) Create a new Notion page, (2) Type "/linked" and create a linked database view, (3) Export that page instead. Or open a specific database row and export that individual page.'
-      );
+      // Resource is a database, not a page - let caller handle this
+      throw error;
     }
 
     throw new Error(`Failed to fetch Notion page: ${error.message}`);
+  }
+}
+
+/**
+ * Fetch a Notion resource (page or database) automatically detecting the type
+ */
+export async function fetchNotionResource(url: string, token: string): Promise<NotionResourceData> {
+  try {
+    const resourceId = extractPageId(url);
+    const resourceType = await detectResourceType(resourceId, token);
+
+    if (resourceType === 'database') {
+      return await fetchNotionDatabase(url, token);
+    } else {
+      return await fetchNotionPage(url, token);
+    }
+  } catch (error: any) {
+    console.error('Error fetching Notion resource:', error);
+    throw error;
   }
 }

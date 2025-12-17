@@ -4,6 +4,7 @@
   --primary: #667eea;
   --secondary: #764ba2;
   --success: #4caf50;
+  --error: #e53e3e;
   --text-light: rgba(255, 255, 255, 0.9);
   --text-dark: #1f2937;
   --border: #e5e7eb;
@@ -203,6 +204,6 @@
 }
 
 button {
-  height: 48px;
+  max-height: 48px;
   border-radius: 12px;
 }

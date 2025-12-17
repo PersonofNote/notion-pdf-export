@@ -1,12 +1,13 @@
 import express, { Request, Response } from 'express';
-import { fetchNotionPage } from '../services/notionService';
+import { fetchNotionResource } from '../services/notionService';
 import { Client } from '@notionhq/client';
 
 const router = express.Router();
 
 /**
  * POST /api/notion/fetch
- * Fetch Notion page content and metadata
+ * Fetch Notion page or database content and metadata
+ * Automatically detects whether the URL is a page or database
  */
 router.post('/fetch', async (req: Request, res: Response) => {
   try {
@@ -30,22 +31,22 @@ router.post('/fetch', async (req: Request, res: Response) => {
       });
     }
 
-    // Fetch page from Notion
-    const pageData = await fetchNotionPage(pageUrl, notionToken);
+    // Fetch resource from Notion (page or database)
+    const resourceData = await fetchNotionResource(pageUrl, notionToken);
 
-    return res.json(pageData);
+    return res.json(resourceData);
   } catch (error: any) {
     console.error('Error in /api/notion/fetch:', error);
 
     return res.status(500).json({
-      error: error.message || 'Failed to fetch Notion page',
+      error: error.message || 'Failed to fetch Notion resource',
     });
   }
 });
 
 /**
  * GET /api/notion/pages
- * Get list of pages accessible to the authenticated user
+ * Get list of pages and databases accessible to the authenticated user
  * Requires OAuth authentication (session token)
  */
 router.get('/pages', async (req: Request, res: Response) => {
@@ -63,26 +64,28 @@ router.get('/pages', async (req: Request, res: Response) => {
     // Initialize Notion client
     const notion = new Client({ auth: notionToken });
 
-    // Search for all pages the integration has access to
+    // Search for all pages and databases the integration has access to
     const response = await notion.search({
-      filter: {
-        property: 'object',
-        value: 'page',
-      },
       sort: {
         direction: 'descending',
         timestamp: 'last_edited_time',
       },
-      page_size: 100, // Get up to 100 pages
+      page_size: 100, // Get up to 100 items
     });
 
     // Format the results
-    const pages = response.results.map((page: any) => {
-      // Extract title from page properties
+    const pages = response.results.map((item: any) => {
       let title = 'Untitled';
-      if (page.properties) {
-        // Find the title property
-        const titleProp = Object.values(page.properties).find(
+      let type = item.object; // 'page' or 'database'
+
+      if (type === 'database') {
+        // Database title
+        if (item.title && item.title.length > 0) {
+          title = item.title.map((t: any) => t.plain_text).join('');
+        }
+      } else if (type === 'page' && item.properties) {
+        // Page title
+        const titleProp = Object.values(item.properties).find(
           (prop: any) => prop.type === 'title'
         ) as any;
 
@@ -92,11 +95,12 @@ router.get('/pages', async (req: Request, res: Response) => {
       }
 
       return {
-        id: page.id,
+        id: item.id,
         title,
-        url: page.url,
-        lastEditedTime: page.last_edited_time,
-        icon: page.icon,
+        url: item.url,
+        type, // 'page' or 'database'
+        lastEditedTime: item.last_edited_time,
+        icon: item.icon,
       };
     });
 
