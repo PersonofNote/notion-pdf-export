@@ -19,6 +19,7 @@ export default function PreviewDocument({
   onBack,
   onContinue
 }: PreviewDocumentProps) {
+
   return (
     <div className="preview-document">
       <h2>Step 3: Preview Your Document{pages.length > 1 ? 's' : ''}</h2>
@@ -64,20 +65,16 @@ export default function PreviewDocument({
                     {resource.icon && <span className="title-icon">{resource.icon}</span>}
                     {resource.title || 'Untitled Database'}
                   </h2>
-
                   {/* Database Table */}
                   <div className="database-table-container">
                     <table className="database-table">
                       <thead>
                         <tr>
-                          {Object.keys(resource.schema)
+                          {Object.keys(resource.rows?.[0].properties)
                             .filter(col => !hiddenColumns.includes(col))
                             .map(columnName => (
                               <th key={columnName}>
                                 {columnName}
-                                <span className="column-type">
-                                  ({resource.schema[columnName].type})
-                                </span>
                               </th>
                             ))}
                         </tr>
@@ -85,7 +82,7 @@ export default function PreviewDocument({
                       <tbody>
                         {resource.rows.map((row, rowIndex) => (
                           <tr key={rowIndex}>
-                            {Object.keys(resource.schema)
+                            {Object.keys(resource.rows?.[0].properties)
                               .filter(col => !hiddenColumns.includes(col))
                               .map(columnName => (
                                 <td key={columnName}>

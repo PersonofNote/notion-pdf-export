@@ -21,8 +21,10 @@ export interface DatabaseRow {
 
 export interface NotionDatabaseData {
   type: 'database';
-  databaseId: string;
+  id: string;
   title: string;
+  firstRow: DatabaseRow;
+  rowCount: number;
   schema: DatabaseSchema;
   rows: DatabaseRow[];
   icon?: string;

@@ -9,13 +9,6 @@ export function renderDatabaseTable(
 ): string {
   const { title, schema, rows, icon } = database;
 
-  // Filter out hidden columns
-  const visibleColumns = Object.keys(schema).filter(col => !hiddenColumns.includes(col));
-
-  if (visibleColumns.length === 0) {
-    return '<p><em>No columns to display (all columns are hidden)</em></p>';
-  }
-
   if (rows.length === 0) {
     return `
       <div class="database-container">
@@ -23,6 +16,16 @@ export function renderDatabaseTable(
         <p><em>This database is empty</em></p>
       </div>
     `;
+  }
+
+  // Get columns from the first row's properties (more reliable than schema)
+  const allColumns = Object.keys(rows[0].properties || {});
+
+  // Filter out hidden columns
+  const visibleColumns = allColumns.filter(col => !hiddenColumns.includes(col));
+
+  if (visibleColumns.length === 0) {
+    return '<p><em>No columns to display (all columns are hidden)</em></p>';
   }
 
   // Build table HTML
@@ -38,7 +41,7 @@ export function renderDatabaseTable(
   html += '    <thead>\n';
   html += '      <tr>\n';
   visibleColumns.forEach(columnName => {
-    const columnType = schema[columnName].type;
+    const columnType = schema[columnName]?.type || 'text';
     const typeLabel = formatColumnType(columnType);
     html += `        <th data-type="${columnType}" title="${typeLabel}">${escapeHtml(columnName)}</th>\n`;
   });
@@ -51,7 +54,7 @@ export function renderDatabaseTable(
     html += `      <tr class="${rowIndex % 2 === 0 ? 'even' : 'odd'}">\n`;
     visibleColumns.forEach(columnName => {
       const value = row.properties[columnName] || '';
-      const columnType = schema[columnName].type;
+      const columnType = schema[columnName]?.type || 'text';
       html += `        <td data-type="${columnType}">${formatCellValue(value, columnType)}</td>\n`;
     });
     html += '      </tr>\n';

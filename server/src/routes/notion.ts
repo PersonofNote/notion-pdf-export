@@ -73,36 +73,85 @@ router.get('/pages', async (req: Request, res: Response) => {
       page_size: 100, // Get up to 100 items
     });
 
-    // Format the results
-    const pages = response.results.map((item: any) => {
-      let title = 'Untitled';
-      let type = item.object; // 'page' or 'database'
-
-      if (type === 'database') {
-        // Database title
-        if (item.title && item.title.length > 0) {
-          title = item.title.map((t: any) => t.plain_text).join('');
-        }
-      } else if (type === 'page' && item.properties) {
-        // Page title
-        const titleProp = Object.values(item.properties).find(
-          (prop: any) => prop.type === 'title'
-        ) as any;
-
-        if (titleProp?.title && titleProp.title.length > 0) {
-          title = titleProp.title.map((t: any) => t.plain_text).join('');
-        }
-      }
-
-      return {
+    // Log what we're getting from Notion for debugging
+    console.log('\n=== Notion Search Results ===');
+    response.results.forEach((item: any, index: number) => {
+      console.log(`\nItem ${index + 1}:`, {
         id: item.id,
-        title,
-        url: item.url,
-        type, // 'page' or 'database'
-        lastEditedTime: item.last_edited_time,
-        icon: item.icon,
-      };
+        object: item.object,
+        parent: item.parent,
+        title: item.object === 'database'
+          ? (item.title?.[0]?.plain_text || 'Untitled Database')
+          : (item.properties?.title?.title?.[0]?.plain_text || 'Untitled')
+      });
     });
+    console.log('=== End Search Results ===\n');
+
+    // Format the results, excluding database row pages
+    const pages = response.results
+      .filter((item: any) => {
+        // Include databases and data sources (data_source is what Notion returns for databases)
+        if (item.object === 'database' || item.object === 'data_source') {
+          console.log(`✓ Including database/data_source: ${item.title?.[0]?.plain_text || item.title || 'Untitled'}`);
+          return true;
+        }
+
+        // For pages, check if they're database rows
+        if (item.object === 'page') {
+          // Database rows have parent.type === 'data_source_id' or 'database_id'
+          const isDatabaseRow =
+            item.parent?.type === 'data_source_id' ||
+            item.parent?.type === 'database_id';
+
+          if (isDatabaseRow) {
+            console.log(`✗ Excluding database row: ${item.properties?.title?.title?.[0]?.plain_text || 'Untitled'}`);
+            return false;
+          }
+
+          console.log(`✓ Including page: ${item.properties?.title?.title?.[0]?.plain_text || 'Untitled'}`);
+          return true;
+        }
+
+        // Exclude anything else
+        console.log(`✗ Excluding unknown object type: ${item.object}`);
+        return false;
+      })
+      .map((item: any) => {
+        let title = 'Untitled';
+        let type = item.object; // 'page', 'database', or 'data_source'
+
+        // Normalize data_source to database for frontend consistency
+        if (type === 'data_source') {
+          type = 'database';
+        }
+
+        if (item.object === 'database' || item.object === 'data_source') {
+          // Database/data_source title
+          if (item.title && Array.isArray(item.title) && item.title.length > 0) {
+            title = item.title.map((t: any) => t.plain_text).join('');
+          } else if (typeof item.title === 'string' && item.title) {
+            title = item.title;
+          }
+        } else if (item.object === 'page' && item.properties) {
+          // Page title
+          const titleProp = Object.values(item.properties).find(
+            (prop: any) => prop.type === 'title'
+          ) as any;
+
+          if (titleProp?.title && titleProp.title.length > 0) {
+            title = titleProp.title.map((t: any) => t.plain_text).join('');
+          }
+        }
+
+        return {
+          id: item.id,
+          title,
+          url: item.url,
+          type, // 'page' or 'database' (data_source normalized to database)
+          lastEditedTime: item.last_edited_time,
+          icon: item.icon,
+        };
+      });
 
     return res.json({
       pages,

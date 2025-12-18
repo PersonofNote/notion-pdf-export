@@ -22,16 +22,18 @@
   padding: 2rem;
   border-radius: 8px;
   margin-bottom: 2rem;
-  max-height: 600px;
   overflow-y: auto;
 }
 
 .preview-page {
   background: white;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Simulate 8.5x11 paper dimensions at 96 DPI */
+  max-width: 816px;
+  margin: 0 auto 2rem;
+  padding: 3rem 2.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
+  min-height: 1056px; /* Approximate letter size height */
 }
 
 .preview-page:last-child {
@@ -284,15 +286,16 @@
 /* Database Table Styles */
 .database-table-container {
   margin: 1.5rem 0;
-  overflow-x: auto;
-  max-width: 100%;
+  width: 100%;
+  overflow: visible;
 }
 
 .database-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   background: white;
+  table-layout: fixed; /* Fixed layout for better text wrapping */
 }
 
 .database-table thead {
@@ -301,27 +304,33 @@
 }
 
 .database-table th {
-  padding: 0.75rem;
+  padding: 0.65rem 0.5rem;
   text-align: left;
   font-weight: 600;
   color: #37352f;
   border: 1px solid #e9e9e7;
-  white-space: nowrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .database-table .column-type {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 400;
   color: #999;
   margin-top: 0.2rem;
 }
 
 .database-table td {
-  padding: 0.6rem 0.75rem;
+  padding: 0.5rem;
   border: 1px solid #e9e9e7;
   color: #37352f;
   vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 0; /* Forces table-layout: fixed to work */
 }
 
 .database-table tbody tr:nth-child(even) {

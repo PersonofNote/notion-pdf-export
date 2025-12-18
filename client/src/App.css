@@ -1,7 +1,7 @@
 :root {
   --bg: white;
   --bg-secondary: #f8f9fa;
-  --primary: #667eea;
+  --primary: #0066cc;
   --secondary: #764ba2;
   --success: #4caf50;
   --error: #e53e3e;
@@ -204,6 +204,25 @@
 }
 
 button {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
   max-height: 48px;
   border-radius: 12px;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+button:hover {
+  filter: brightness(1.5) saturation(1.2); ;
 }

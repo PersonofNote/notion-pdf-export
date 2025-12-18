@@ -38,10 +38,6 @@
   margin-bottom: 0.75rem;
 }
 
-.generate-button:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
 .generate-button:disabled {
   background-color: #ccc;
   cursor: not-allowed;

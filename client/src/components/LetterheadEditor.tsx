@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fileToBase64, type LetterheadData } from '../services/api';
 import './LetterheadEditor.css';
 
@@ -9,8 +9,35 @@ interface LetterheadEditorProps {
   onBack: () => void;
 }
 
+const LETTERHEAD_STORAGE_KEY = 'notion-pdf-exporter-letterhead';
+
 export default function LetterheadEditor({ letterhead, onUpdate, onNext, onBack }: LetterheadEditorProps) {
   const [uploading, setUploading] = useState(false);
+  const [hasSavedLetterhead, setHasSavedLetterhead] = useState(false);
+
+  // Check if there's saved letterhead on mount and auto-load if current is empty
+  useEffect(() => {
+    const saved = localStorage.getItem(LETTERHEAD_STORAGE_KEY);
+    setHasSavedLetterhead(!!saved);
+
+    // Auto-load saved letterhead if current letterhead is empty
+    if (saved && !letterhead.companyName.trim()) {
+      try {
+        const savedData = JSON.parse(saved) as LetterheadData;
+        onUpdate(savedData);
+      } catch (error) {
+        console.error('Error auto-loading saved letterhead:', error);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save letterhead to localStorage whenever it changes
+  useEffect(() => {
+    if (letterhead.companyName.trim()) {
+      localStorage.setItem(LETTERHEAD_STORAGE_KEY, JSON.stringify(letterhead));
+      setHasSavedLetterhead(true);
+    }
+  }, [letterhead]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,6 +75,32 @@ export default function LetterheadEditor({ letterhead, onUpdate, onNext, onBack 
     onUpdate({ ...letterhead, [field]: value });
   };
 
+  const loadSavedLetterhead = () => {
+    try {
+      const saved = localStorage.getItem(LETTERHEAD_STORAGE_KEY);
+      if (saved) {
+        const savedData = JSON.parse(saved) as LetterheadData;
+        onUpdate(savedData);
+      }
+    } catch (error) {
+      console.error('Error loading saved letterhead:', error);
+      alert('Failed to load saved letterhead');
+    }
+  };
+
+  const clearSavedLetterhead = () => {
+    if (confirm('Are you sure you want to clear the saved letterhead?')) {
+      localStorage.removeItem(LETTERHEAD_STORAGE_KEY);
+      setHasSavedLetterhead(false);
+      onUpdate({
+        companyName: '',
+        address: '',
+        phone: '',
+        email: '',
+      });
+    }
+  };
+
   const canProceed = letterhead.companyName.trim().length > 0;
 
   return (
@@ -56,6 +109,17 @@ export default function LetterheadEditor({ letterhead, onUpdate, onNext, onBack 
       <p className="description">
         Add your company logo and contact information for the PDF header.
       </p>
+
+      {hasSavedLetterhead && (
+        <div className="saved-letterhead-actions">
+          <button onClick={loadSavedLetterhead} className="load-saved-button">
+            Load Saved Letterhead
+          </button>
+          <button onClick={clearSavedLetterhead} className="clear-saved-button">
+            Clear Saved
+          </button>
+        </div>
+      )}
 
       <div className="form-section">
         <div className="form-group">

@@ -4,8 +4,7 @@ import type {
   PartialPageObjectResponse,
   BlockObjectResponse,
   PartialBlockObjectResponse,
-  DatabaseObjectResponse,
-  QueryDatabaseResponse
+  DatabaseObjectResponse
 } from '@notionhq/client/build/src/api-endpoints';
 
 export type ResourceType = 'page' | 'database';
@@ -32,8 +31,10 @@ export interface NotionPageData {
 
 export interface NotionDatabaseData {
   type: 'database';
-  databaseId: string;
+  id: string;
   title: string;
+  firstRow: DatabaseRow;
+  rowCount: number;
   schema: DatabaseSchema;
   rows: DatabaseRow[];
   icon?: string;
@@ -184,7 +185,13 @@ export async function fetchNotionDatabase(databaseUrl: string, token: string): P
     console.log('Fetching Notion database:', databaseId);
 
     // Fetch database metadata
-    const database = await notion.databases.retrieve({ database_id: databaseId }) as DatabaseObjectResponse;
+    const database = await notion.databases.retrieve({ database_id: databaseId }) as any;
+
+    console.log('Database object:', {
+      id: database.id,
+      object: database.object,
+      title: database.title
+    });
 
     // Extract title
     let title = 'Untitled Database';
@@ -202,14 +209,16 @@ export async function fetchNotionDatabase(databaseUrl: string, token: string): P
 
     // Extract schema (column definitions)
     const schema: DatabaseSchema = {};
-    Object.entries(database.properties).forEach(([name, property]) => {
+    const dbProperties = (database as any).properties || {};
+    Object.entries(dbProperties).forEach(([name, property]: [string, any]) => {
       schema[name] = {
-        id: property.id,
-        type: property.type
+        id: property.id || '',
+        type: property.type || 'unknown'
       };
     });
 
     // Fetch all rows (with pagination)
+    // Use search API to find all pages that are children of this database
     const rows: DatabaseRow[] = [];
     let hasMore = true;
     let startCursor: string | undefined = undefined;
@@ -217,39 +226,90 @@ export async function fetchNotionDatabase(databaseUrl: string, token: string): P
     const MAX_PAGES = 5; // Limit to 500 rows (100 per page) for MVP
 
     while (hasMore && pageCount < MAX_PAGES) {
-      const response: QueryDatabaseResponse = await notion.databases.query({
-        database_id: databaseId,
-        start_cursor: startCursor
-      });
+      try {
+        console.log('Searching for database rows with parent ID:', databaseId);
+        const response: any = await notion.search({
+          filter: {
+            value: 'page',
+            property: 'object'
+          },
+          start_cursor: startCursor,
+          page_size: 100
+        });
+        console.log('Search response received, total results:', response.results?.length);
 
-      // Process rows
-      response.results.forEach((page) => {
-        if ('properties' in page) {
-          const rowData: Record<string, string> = {};
-          Object.entries(page.properties).forEach(([name, property]) => {
-            rowData[name] = extractPropertyValue(property);
+        // Debug: Log what we're getting
+        response.results.forEach((item: any, idx: number) => {
+          console.log(`Result ${idx}:`, {
+            id: item.id,
+            object: item.object,
+            parent: item.parent
           });
+        });
 
-          rows.push({
-            id: page.id,
-            properties: rowData
-          });
-        }
-      });
+        // Filter for pages that are children of this database
+        const databaseRows = response.results.filter((page: any) => {
+          // Check both database_id and data_source_id parent types
+          // Also normalize IDs by removing hyphens for comparison
+          const normalizedDatabaseId = databaseId.replace(/-/g, '');
+          const normalizedParentId = (page.parent?.database_id || page.parent?.data_source_id || '').replace(/-/g, '');
 
-      hasMore = response.has_more;
-      startCursor = response.next_cursor || undefined;
-      pageCount++;
+          const isChildOfDatabase =
+            (page.parent?.type === 'database_id' || page.parent?.type === 'data_source_id') &&
+            normalizedParentId === normalizedDatabaseId;
+
+          if (isChildOfDatabase) {
+            console.log('✓ Found database row:', page.properties?.title?.title?.[0]?.plain_text || page.id);
+          }
+
+          return isChildOfDatabase;
+        });
+
+        console.log('Filtered to database rows:', databaseRows.length);
+
+        // Process rows
+        databaseRows.forEach((page: any, idx: number) => {
+          if ('properties' in page) {
+            if (idx === 0) {
+              // Debug first row to see property structure
+              console.log('First row properties:', JSON.stringify(page.properties, null, 2));
+            }
+
+            const rowData: Record<string, string> = {};
+            Object.entries(page.properties).forEach(([name, property]) => {
+              const value = extractPropertyValue(property);
+              rowData[name] = value;
+              if (idx === 0) {
+                console.log(`  ${name}: "${value}" (type: ${(property as any)?.type})`);
+              }
+            });
+
+            rows.push({
+              id: page.id,
+              properties: rowData
+            });
+          }
+        });
+
+        hasMore = response.has_more;
+        startCursor = response.next_cursor || undefined;
+        pageCount++;
+      } catch (queryError: any) {
+        console.error('Error searching for database rows:', queryError);
+        throw new Error(`Failed to query database rows: ${queryError.message}`);
+      }
     }
 
     console.log(`Fetched ${rows.length} rows from database`);
 
     return {
       type: 'database',
-      databaseId: rawDatabaseId,
+      id: rawDatabaseId,
       title,
       schema,
       rows,
+      firstRow: rows[0],
+      rowCount: rows.length,
       icon
     };
   } catch (error: any) {

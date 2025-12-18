@@ -93,14 +93,17 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
   };
 
   const getPageIcon = (page: NotionPage) => {
-    if (!page.icon) return '📄';
-    if (page.icon.type === 'emoji') return page.icon.emoji || '📄';
-    return '📄';
+    // Use different default icon for databases
+    const defaultIcon = page.type === 'database' ? '📊' : '📄';
+
+    if (!page.icon) return defaultIcon;
+    if (page.icon.type === 'emoji') return page.icon.emoji || defaultIcon;
+    return defaultIcon;
   };
 
   return (
     <div className="notion-url-input">
-      <h2>Step 1: {!authenticated ? "Connect" : "Select Pages" }</h2>
+      <h2>Step 1: {!authenticated ? "Connect" : "Select Pages & Databases" }</h2>
 
       {!authenticated ? (
         <>
@@ -186,13 +189,13 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
       ) : (
         <>
           <p className="description">
-            Select a page/pages from your workspace to export
+            Select pages and/or databases from your workspace to export
           </p>
 
           {loadingPages ? (
             <div className="loading-pages">
               <div className="spinner"></div>
-              <p>Loading your pages...</p>
+              <p>Loading your content...</p>
             </div>
           ) : pagesError ? (
             <div className="error-message">
@@ -203,13 +206,13 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
             </div>
           ) : pages.length === 0 ? (
             <div className="no-pages-message">
-              <p>No pages found. Make sure you've shared pages with this integration.</p>
+              <p>No pages or databases found. Make sure you've shared content with this integration.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <div className="page-select-header">
-                  <label>Select Pages</label>
+                  <label>Select Pages & Databases</label>
                   <div className="select-actions">
                     <button
                       type="button"
@@ -245,12 +248,17 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
                         tabIndex={-1}
                       />
                       <span className="page-icon">{getPageIcon(page)}</span>
-                      <span className="page-title">{page.title}</span>
+                      <span className="page-title">
+                        {page.title}
+                        {page.type === 'database' && (
+                          <span className="page-type-badge">Database</span>
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>
                 <small>
-                  {selectedPageIds.length} page{selectedPageIds.length !== 1 ? 's' : ''} selected
+                  {selectedPageIds.length} item{selectedPageIds.length !== 1 ? 's' : ''} selected
                 </small>
               </div>
 

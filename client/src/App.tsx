@@ -347,7 +347,7 @@ function App() {
               >
                 <div className="step-circle">{stepNum}</div>
                 <div className="step-label">
-                  {stepNum === 1 && 'Choose Page(s)'}
+                  {stepNum === 1 && 'Choose Content'}
                   {stepNum === 2 && 'Letterhead'}
                   {stepNum === 3 && 'Property Filter'}
                   {stepNum === 4 && 'Preview'}
