@@ -11,9 +11,6 @@ interface NotionUrlInputProps {
 }
 
 export default function NotionUrlInput({ onFetch, loading, error, authenticated }: NotionUrlInputProps) {
-  const [url, setUrl] = useState('');
-  const [token, setToken] = useState('');
-  const [showManualToken, setShowManualToken] = useState(false);
 
   // Page selector state
   const [pages, setPages] = useState<NotionPage[]>([]);
@@ -77,15 +74,6 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
         // Pass multiple URLs joined by comma
         const urls = selectedPages.map(p => p.url).join(',');
         onFetch(urls);
-      }
-    } else {
-      // Manual URL input
-      if (url.trim()) {
-        // If authenticated via OAuth, don't need token
-        // Otherwise, require manual token
-        if (authenticated || token.trim()) {
-          onFetch(url.trim(), token.trim() || undefined);
-        }
       }
     }
   };
