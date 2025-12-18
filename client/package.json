@@ -1,8 +1,8 @@
 {
-  "name": "notion-pdf-exporter-client",
+  "name": "pdfport",
   "version": "1.0.0",
   "type": "module",
-  "description": "Frontend for Notion to branded PDF exporter",
+  "description": "Notion to branded PDF exporter",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
