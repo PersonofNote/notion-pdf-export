@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { fetchNotionResource } from '../services/notionService';
 import { Client } from '@notionhq/client';
+import { validateNotionUrl, validateNotionToken } from '../utils/validation';
 
 const router = express.Router();
 
@@ -13,10 +14,12 @@ router.post('/fetch', async (req: Request, res: Response) => {
   try {
     const { pageUrl, notionToken: bodyToken } = req.body;
 
-    // Validation
-    if (!pageUrl) {
+    // Validate page URL
+    const urlValidation = validateNotionUrl(pageUrl);
+    if (!urlValidation.valid) {
       return res.status(400).json({
-        error: 'Missing required field: pageUrl',
+        error: 'Invalid page URL',
+        message: urlValidation.error,
       });
     }
 
@@ -29,6 +32,17 @@ router.post('/fetch', async (req: Request, res: Response) => {
         error: 'Not authenticated',
         message: 'Please provide a Notion token or authenticate via OAuth',
       });
+    }
+
+    // Validate token format if it's from request body
+    if (bodyToken) {
+      const tokenValidation = validateNotionToken(bodyToken);
+      if (!tokenValidation.valid) {
+        return res.status(400).json({
+          error: 'Invalid token',
+          message: tokenValidation.error,
+        });
+      }
     }
 
     // Fetch resource from Notion (page or database)

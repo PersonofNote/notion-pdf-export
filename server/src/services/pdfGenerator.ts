@@ -289,17 +289,23 @@ export async function generatePdf(request: PdfGenerationRequest): Promise<Buffer
     // Generate HTML
     const html = generateHtmlDocument(request);
 
-    // Launch Puppeteer
+    // Launch Puppeteer with timeout
     browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      timeout: 30000, // 30 second timeout for browser launch
     });
 
     const page = await browser.newPage();
 
-    // Set content
+    // Set default navigation timeout
+    page.setDefaultNavigationTimeout(60000); // 60 seconds
+    page.setDefaultTimeout(60000); // 60 seconds for other operations
+
+    // Set content with timeout
     await page.setContent(html, {
       waitUntil: 'networkidle0',
+      timeout: 30000, // 30 second timeout for content loading
     });
 
     // Generate PDF
@@ -312,16 +318,32 @@ export async function generatePdf(request: PdfGenerationRequest): Promise<Buffer
         left: '15mm',
       },
       printBackground: true,
+      timeout: 30000, // 30 second timeout for PDF generation
     });
 
     await browser.close();
 
     return Buffer.from(pdf);
   } catch (error) {
+    // Ensure browser is closed even on error
     if (browser) {
-      await browser.close();
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
     }
+
     console.error('Error generating PDF:', error);
-    throw new Error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('timeout')) {
+        throw new Error('PDF generation timed out. Please try with a smaller document or simpler content.');
+      }
+      throw new Error(`Failed to generate PDF: ${error.message}`);
+    }
+
+    throw new Error('Failed to generate PDF: Unknown error');
   }
 }

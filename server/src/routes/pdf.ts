@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { generatePdf, type PdfGenerationRequest } from '../services/pdfGenerator';
+import { validateLetterheadData, validatePropertyArray } from '../utils/validation';
 import archiver from 'archiver';
 
 const router = express.Router();
@@ -12,11 +13,35 @@ router.post('/generate', async (req: Request, res: Response) => {
   try {
     const { type, title, blocks, database, letterhead, properties, hiddenProperties, hiddenColumns } = req.body;
 
-    // Validation
-    if (!letterhead || !letterhead.companyName) {
+    // Validate letterhead
+    const letterheadValidation = validateLetterheadData(letterhead);
+    if (!letterheadValidation.valid) {
       return res.status(400).json({
-        error: 'Missing required field: letterhead.companyName',
+        error: 'Invalid letterhead data',
+        message: letterheadValidation.error,
       });
+    }
+
+    // Validate hidden properties if present
+    if (type === 'page' && hiddenProperties) {
+      const propsValidation = validatePropertyArray(hiddenProperties);
+      if (!propsValidation.valid) {
+        return res.status(400).json({
+          error: 'Invalid hidden properties',
+          message: propsValidation.error,
+        });
+      }
+    }
+
+    // Validate hidden columns if present
+    if (type === 'database' && hiddenColumns) {
+      const colsValidation = validatePropertyArray(hiddenColumns);
+      if (!colsValidation.valid) {
+        return res.status(400).json({
+          error: 'Invalid hidden columns',
+          message: colsValidation.error,
+        });
+      }
     }
 
     let pdfRequest: PdfGenerationRequest;
@@ -33,7 +58,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       pdfRequest = {
         type: 'database',
         database,
-        letterhead,
+        letterhead: letterheadValidation.sanitized!,
         hiddenColumns: hiddenColumns || [],
       };
 
@@ -50,7 +75,7 @@ router.post('/generate', async (req: Request, res: Response) => {
         type: 'page',
         title: title || 'Untitled',
         blocks,
-        letterhead,
+        letterhead: letterheadValidation.sanitized!,
         properties: properties || {},
         hiddenProperties: hiddenProperties || [],
       };
