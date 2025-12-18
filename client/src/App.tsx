@@ -417,6 +417,10 @@ function App() {
         <p>
           Built for converting Notion pages to PDFs with custom branding
         </p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+          <a href="/privacy" style={{ color: '#666', textDecoration: 'none', marginRight: '1rem' }}>Privacy Policy</a>
+          <a href="/terms" style={{ color: '#666', textDecoration: 'none' }}>Terms of Use</a>
+        </p>
       </footer>
     </div>
   );

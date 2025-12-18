@@ -101,7 +101,7 @@ export default function PreviewDocument({
   const iframeRefs = useRef<(HTMLIFrameElement | null)[]>([]);
 
   // Generate complete HTML document for preview
-  const generatePreviewHtml = (resource: NotionResourceData, index: number): string => {
+  const generatePreviewHtml = (resource: NotionResourceData): string => {
     const letterheadHtml = generateLetterheadHtml(letterhead);
     let contentHtml = '';
 
@@ -218,7 +218,7 @@ export default function PreviewDocument({
         const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
         if (doc) {
           doc.open();
-          doc.write(generatePreviewHtml(resource, index));
+          doc.write(generatePreviewHtml(resource));
           doc.close();
         }
       }
