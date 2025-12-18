@@ -65,15 +65,7 @@ export default function DownloadButton({
       </div>
 
       <div className="info-box">
-        <h3>What happens next?</h3>
-        <ul>
-          <li>Your Notion content will be converted to HTML</li>
-          <li>The letterhead and contact info will be added</li>
-          <li>Selected properties will be included in the document{isMultiple ? 's' : ''}</li>
-          {isMultiple && <li>All PDFs will be packaged into a zip file</li>}
-          <li>Professional PDF{isMultiple ? 's' : ''} will be generated and downloaded</li>
-        </ul>
-        <p className="note">
+        <p>
           <strong>Note:</strong> PDF generation may take {isMultiple ? `${pageCount * 5}-${pageCount * 10}` : '5-10'} seconds.
         </p>
       </div>

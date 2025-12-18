@@ -310,7 +310,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Notion PDF Exporter</h1>
+        <h1>PDFPort</h1>
         <p className="tagline">Convert Notion pages to branded PDFs</p>
         {state.authenticated && (
           <AuthStatus
@@ -325,7 +325,7 @@ function App() {
         {/* Progress indicator */}
         <div className="progress-steps">
           {[1, 2, 3, 4, 5].map((stepNum) => {
-            // Hide property filter step indicator if no filterable fields
+            // Check if there are filterable fields
             const hasFilterableFields = state.pageData.some(resource => {
               if (resource.type === 'database') {
                 return Object.keys(resource.schema).length > 0;
@@ -334,16 +334,15 @@ function App() {
               }
             });
 
-            if (stepNum === 3 && !hasFilterableFields) {
-              return null; // Don't show step 3 indicator if no filterable fields
-            }
+            // Step 3 is disabled if no filterable fields
+            const isDisabled = stepNum === 3 && !hasFilterableFields;
 
             return (
               <div
                 key={stepNum}
                 className={`progress-step ${state.step === stepNum ? 'active' : ''} ${
                   state.step > stepNum ? 'completed' : ''
-                }`}
+                } ${isDisabled ? 'disabled' : ''}`}
               >
                 <div className="step-circle">{stepNum}</div>
                 <div className="step-label">

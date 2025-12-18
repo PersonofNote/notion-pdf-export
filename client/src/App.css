@@ -119,6 +119,18 @@
   font-size: 0;
 }
 
+.progress-step.disabled .step-circle {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #b0b0b0;
+}
+
+.progress-step.disabled .step-label {
+  color: #b0b0b0;
+  opacity: 0.5;
+}
+
+
 .step-label {
   font-size: 0.85rem;
   color: var(--text-dark);
