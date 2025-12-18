@@ -1,5 +1,5 @@
 {
-  "name": "notion-pdf-exporter-server",
+  "name": "pdfport",
   "version": "1.0.0",
   "description": "Backend API for Notion to branded PDF exporter",
   "main": "dist/server.js",

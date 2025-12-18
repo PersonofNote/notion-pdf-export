@@ -10,6 +10,7 @@ import {
   generatePdf,
   downloadPdf,
   checkAuthStatus,
+  API_BASE_URL,
   type NotionResourceData,
   type LetterheadData,
 } from './services/api';
@@ -246,7 +247,7 @@ function App() {
         downloadPdf(pdfBlob, filename);
       } else {
         // Multiple PDFs - generate batch
-        const response = await fetch('/api/pdf/batch', {
+        const response = await fetch(`${API_BASE_URL}/pdf/batch`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
