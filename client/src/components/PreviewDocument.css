@@ -23,29 +23,51 @@
   border-radius: 8px;
   margin-bottom: 2rem;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
-.preview-page {
+.preview-page-wrapper {
+  margin-bottom: 2rem;
   background: white;
-  /* Simulate 8.5x11 paper dimensions at 96 DPI */
-  max-width: 816px;
-  margin: 0 auto 2rem;
-  padding: 3rem 2.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
-  min-height: 1056px; /* Approximate letter size height */
+  overflow: hidden;
 }
 
-.preview-page:last-child {
+.preview-page-wrapper:last-child {
   margin-bottom: 0;
+}
+
+.preview-iframe-container {
+  /* Letter size at 816px width, scaled down to 75% to fit better */
+  width: 612px;  /* 816px * 0.75 */
+  height: 792px; /* 1056px * 0.75 */
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.preview-iframe {
+  width: 816px;   /* Letter size width at 96 DPI */
+  height: 1056px; /* Letter size height at 96 DPI */
+  border: none;
+  transform: scale(0.75);
+  transform-origin: 0 0;
+  display: block;
+}
+
+.preview-content {
+  max-width: 816px;
+  margin: 0 auto;
+  padding: 3rem 2.5rem;
+  min-height: 1056px;
 }
 
 .page-number {
   text-align: center;
   font-size: 0.85rem;
   color: #6b6b6b;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  padding: 1rem;
+  background: #f9f9f9;
   border-bottom: 1px solid #e9e9e7;
 }
 
@@ -283,7 +305,7 @@
   font-style: italic;
 }
 
-/* Database Table Styles */
+/* Database Table Styles - Match PDF generation */
 .database-table-container {
   margin: 1.5rem 0;
   width: 100%;
@@ -293,9 +315,9 @@
 .database-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 14px;
   background: white;
-  table-layout: fixed; /* Fixed layout for better text wrapping */
+  table-layout: auto; /* Let table determine column widths naturally */
 }
 
 .database-table thead {
@@ -304,36 +326,33 @@
 }
 
 .database-table th {
-  padding: 0.65rem 0.5rem;
+  padding: 12px;
   text-align: left;
   font-weight: 600;
   color: #37352f;
   border: 1px solid #e9e9e7;
+  white-space: normal;
   word-wrap: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
 }
 
 .database-table .column-type {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 400;
-  color: #999;
-  margin-top: 0.2rem;
+  display: none; /* Hide in preview to match PDF */
 }
 
 .database-table td {
-  padding: 0.5rem;
+  padding: 10px 12px;
   border: 1px solid #e9e9e7;
   color: #37352f;
   vertical-align: top;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  hyphens: auto;
-  max-width: 0; /* Forces table-layout: fixed to work */
 }
 
 .database-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+.database-table tbody tr:nth-child(odd) {
   background-color: #fafafa;
 }
 
@@ -343,6 +362,32 @@
 
 .database-table td em {
   color: #999;
+}
+
+/* Type-specific column styling - match PDF */
+.database-table td[data-type="checkbox"] {
+  text-align: center;
+  width: 60px;
+}
+
+.database-table td[data-type="number"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.database-table td[data-type="date"],
+.database-table td[data-type="created_time"],
+.database-table td[data-type="last_edited_time"] {
+  white-space: nowrap;
+}
+
+.database-table a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.database-table a:hover {
+  text-decoration: underline;
 }
 
 .title-icon {
