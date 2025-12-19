@@ -56,7 +56,7 @@ function generateDatabaseTableHtml(resource: NotionResourceData, hiddenColumns: 
   }
 
   let html = '<div class="database-container">\n';
-  html += `  <h2 class="database-title">${resource.icon || '📊'} ${escapeHtml(resource.title)}</h2>\n`;
+  html += `  <h2 class="database-title">${escapeHtml(resource.title)}</h2>\n`;
   html += '  <table class="notion-database">\n';
 
   // Header

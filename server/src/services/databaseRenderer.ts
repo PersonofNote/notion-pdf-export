@@ -7,12 +7,12 @@ export function renderDatabaseTable(
   database: NotionDatabaseData,
   hiddenColumns: string[] = []
 ): string {
-  const { title, schema, rows, icon } = database;
+  const { title, schema, rows } = database;
 
   if (rows.length === 0) {
     return `
       <div class="database-container">
-        <h2 class="database-title">${icon || '📊'} ${escapeHtml(title)}</h2>
+        <h2 class="database-title">${escapeHtml(title)}</h2>
         <p><em>This database is empty</em></p>
       </div>
     `;
@@ -32,7 +32,7 @@ export function renderDatabaseTable(
   let html = '<div class="database-container">\n';
 
   // Database title
-  html += `  <h2 class="database-title">${icon || '📊'} ${escapeHtml(title)}</h2>\n`;
+  html += `  <h2 class="database-title">${escapeHtml(title)}</h2>\n`;
 
   // Table
   html += '  <table class="notion-database">\n';

@@ -66,7 +66,7 @@ export default function DownloadButton({
 
       <div className="info-box">
         <p>
-          <strong>Note:</strong> PDF generation may take {isMultiple ? `${pageCount * 5}-${pageCount * 10}` : '5-10'} seconds.
+          <strong>Note:</strong> PDF generation may take several seconds to a few minutes.
         </p>
       </div>
     </div>
