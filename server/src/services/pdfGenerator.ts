@@ -289,10 +289,18 @@ export async function generatePdf(request: PdfGenerationRequest): Promise<Buffer
     // Generate HTML
     const html = generateHtmlDocument(request);
 
-    // Launch Puppeteer with timeout
+    // Launch Puppeteer with timeout and optimized args for containerized environment
     browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Overcome limited resource problems
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+      ],
       timeout: 30000, // 30 second timeout for browser launch
     });
 
@@ -303,8 +311,9 @@ export async function generatePdf(request: PdfGenerationRequest): Promise<Buffer
     page.setDefaultTimeout(60000); // 60 seconds for other operations
 
     // Set content with timeout
+    // Use 'load' instead of 'networkidle0' since we generate HTML ourselves
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'load',
       timeout: 30000, // 30 second timeout for content loading
     });
 

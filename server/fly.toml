@@ -23,7 +23,7 @@ primary_region = "sjc"  # Change to your preferred region (sjc = San Jose, CA)
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0  # Scale to zero when idle
+  min_machines_running = 0
 
   # HTTP service healthcheck
   [[http_service.checks]]
@@ -37,10 +37,4 @@ primary_region = "sjc"  # Change to your preferred region (sjc = San Jose, CA)
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 512  # Increase if you experience OOM with large PDFs
-
-# Increase memory for production workloads if needed
-# [[vm]]
-#   cpu_kind = "shared"
-#   cpus = 2
-#   memory_mb = 1024
+  memory_mb = 1024  # Increased for Puppeteer/Chromium
