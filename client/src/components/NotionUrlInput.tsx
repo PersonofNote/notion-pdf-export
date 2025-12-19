@@ -158,7 +158,7 @@ export default function NotionUrlInput({ onFetch, loading, error, authenticated 
                       <span className="page-title">
                         {page.title}
                         {page.type === 'database' && (
-                          <span className="page-type-badge">Database</span>
+                          <span className="page-type-badge"> (Database)</span>
                         )}
                       </span>
                     </div>
