@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { generatePdf, type PdfGenerationRequest } from '../services/pdfGenerator';
 import { validateLetterheadData, validatePropertyArray } from '../utils/validation';
 import archiver from 'archiver';
+import { log } from '../utils/logger';
 
 const router = express.Router();
 
@@ -86,6 +87,12 @@ router.post('/generate', async (req: Request, res: Response) => {
     // Generate PDF
     const pdfBuffer = await generatePdf(pdfRequest);
 
+    log.pdfGeneration('Single PDF generated successfully', {
+      type: pdfRequest.type,
+      filename,
+      size: pdfBuffer.length,
+    });
+
     // Set headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -96,7 +103,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     return res.send(pdfBuffer);
   } catch (error: any) {
-    console.error('Error in /api/pdf/generate:', error);
+    log.error('Error in /api/pdf/generate', error instanceof Error ? error : new Error(error));
 
     return res.status(500).json({
       error: error.message || 'Failed to generate PDF',
@@ -120,13 +127,38 @@ router.post('/batch', async (req: Request, res: Response) => {
       });
     }
 
-    if (!letterhead || !letterhead.companyName) {
+    // Validate letterhead
+    const letterheadValidation = validateLetterheadData(letterhead);
+    if (!letterheadValidation.valid) {
       return res.status(400).json({
-        error: 'Missing required field: letterhead.companyName',
+        error: 'Invalid letterhead data',
+        message: letterheadValidation.error,
       });
     }
 
-    console.log(`Generating ${pages.length} PDFs...`);
+    // Validate hidden properties if present
+    if (hiddenProperties) {
+      const propsValidation = validatePropertyArray(hiddenProperties);
+      if (!propsValidation.valid) {
+        return res.status(400).json({
+          error: 'Invalid hidden properties',
+          message: propsValidation.error,
+        });
+      }
+    }
+
+    // Validate hidden columns if present
+    if (hiddenColumns) {
+      const colsValidation = validatePropertyArray(hiddenColumns);
+      if (!colsValidation.valid) {
+        return res.status(400).json({
+          error: 'Invalid hidden columns',
+          message: colsValidation.error,
+        });
+      }
+    }
+
+    log.pdfGeneration('Starting batch PDF generation', { count: pages.length });
 
     // Generate all PDFs
     const pdfBuffers: { filename: string; buffer: Buffer }[] = [];
@@ -141,7 +173,7 @@ router.post('/batch', async (req: Request, res: Response) => {
         pdfRequest = {
           type: 'database',
           database: item,
-          letterhead,
+          letterhead: letterheadValidation.sanitized!,
           hiddenColumns: hiddenColumns || [],
         };
         title = item.title || `Database-${i + 1}`;
@@ -151,7 +183,7 @@ router.post('/batch', async (req: Request, res: Response) => {
           type: 'page',
           title: item.title || `Untitled-${i + 1}`,
           blocks: item.blocks,
-          letterhead,
+          letterhead: letterheadValidation.sanitized!,
           properties: item.properties || {},
           hiddenProperties: hiddenProperties || [],
         };
@@ -170,7 +202,7 @@ router.post('/batch', async (req: Request, res: Response) => {
         buffer: pdfBuffer,
       });
 
-      console.log(`Generated PDF ${i + 1}/${pages.length}: ${title}`);
+      log.pdfGeneration(`Generated PDF ${i + 1}/${pages.length}`, { title });
     }
 
     // Create zip archive
@@ -193,9 +225,9 @@ router.post('/batch', async (req: Request, res: Response) => {
     // Finalize archive
     await archive.finalize();
 
-    console.log(`Zip file created with ${pdfBuffers.length} PDFs`);
+    log.pdfGeneration('Batch PDF generation completed', { count: pdfBuffers.length });
   } catch (error: any) {
-    console.error('Error in /api/pdf/batch:', error);
+    log.error('Error in /api/pdf/batch', error instanceof Error ? error : new Error(error));
 
     return res.status(500).json({
       error: error.message || 'Failed to generate PDFs',

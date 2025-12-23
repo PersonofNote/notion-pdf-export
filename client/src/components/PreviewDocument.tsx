@@ -225,6 +225,11 @@ export default function PreviewDocument({
     });
   }, [pages, letterhead, hiddenColumns]);
 
+  // Check if any database is truncated
+  const truncatedDatabases = pages.filter(
+    resource => resource.type === 'database' && resource.truncated
+  );
+
   return (
     <>
     <div className="preview-document">
@@ -233,6 +238,20 @@ export default function PreviewDocument({
         Review how your {pages.length > 1 ? 'PDFs' : 'PDF'} will look before generating.
         {pages.length > 1 && ' Each page will be exported as a separate PDF.'}
       </p>
+
+      {truncatedDatabases.length > 0 && (
+        <div className="warning-message" style={{
+          background: '#fff4e6',
+          border: '1px solid #ffa940',
+          borderRadius: '4px',
+          padding: '12px 16px',
+          margin: '16px 0',
+          color: '#873800'
+        }}>
+          <strong>⚠️ Large Database Warning:</strong> {truncatedDatabases.length === 1 ? 'One database has' : `${truncatedDatabases.length} databases have`} more than 2,000 rows.
+          Only the first 2,000 rows will be included in the PDF to prevent extremely long generation times.
+        </div>
+      )}
 
       <div className="preview-container">
         {pages.map((resource, index) => (

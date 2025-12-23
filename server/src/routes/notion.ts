@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { fetchNotionResource } from '../services/notionService';
 import { Client } from '@notionhq/client';
 import { validateNotionUrl, validateNotionToken } from '../utils/validation';
+import { log } from '../utils/logger';
 
 const router = express.Router();
 
@@ -48,9 +49,10 @@ router.post('/fetch', async (req: Request, res: Response) => {
     // Fetch resource from Notion (page or database)
     const resourceData = await fetchNotionResource(pageUrl, notionToken);
 
+    log.notionApi('Resource fetched successfully', { type: resourceData.type });
     return res.json(resourceData);
   } catch (error: any) {
-    console.error('Error in /api/notion/fetch:', error);
+    log.error('Error in /api/notion/fetch', error instanceof Error ? error : new Error(error));
 
     return res.status(500).json({
       error: error.message || 'Failed to fetch Notion resource',
@@ -79,17 +81,41 @@ router.get('/pages', async (req: Request, res: Response) => {
     const notion = new Client({ auth: notionToken });
 
     // Search for all pages and databases the integration has access to
-    const response = await notion.search({
-      sort: {
-        direction: 'descending',
-        timestamp: 'last_edited_time',
-      },
-      page_size: 100, // Get up to 100 items
-    });
+    // Fetch multiple pages to get more results
+    const allResults: any[] = [];
+    let hasMore = true;
+    let startCursor: string | undefined = undefined;
+    let pageCount = 0;
+    const MAX_PAGES = 5; // Fetch up to 500 items (100 per page)
+
+    while (hasMore && pageCount < MAX_PAGES) {
+      const response = await notion.search({
+        sort: {
+          direction: 'descending',
+          timestamp: 'last_edited_time',
+        },
+        page_size: 100,
+        start_cursor: startCursor,
+      });
+
+      allResults.push(...response.results);
+      hasMore = response.has_more;
+      startCursor = response.next_cursor || undefined;
+      pageCount++;
+    }
+
+    // Check if results were truncated
+    const truncated = hasMore && pageCount >= MAX_PAGES;
+    if (truncated) {
+      log.warn('Pages/databases list truncated', {
+        fetchedCount: allResults.length,
+        limit: MAX_PAGES * 100,
+      });
+    }
 
     // Log what we're getting from Notion for debugging
     console.log('\n=== Notion Search Results ===');
-    response.results.forEach((item: any, index: number) => {
+    allResults.forEach((item: any, index: number) => {
       console.log(`\nItem ${index + 1}:`, {
         id: item.id,
         object: item.object,
@@ -102,7 +128,7 @@ router.get('/pages', async (req: Request, res: Response) => {
     console.log('=== End Search Results ===\n');
 
     // Format the results, excluding database row pages
-    const pages = response.results
+    const pages = allResults
       .filter((item: any) => {
         // Include databases and data sources (data_source is what Notion returns for databases)
         if (item.object === 'database' || item.object === 'data_source') {
@@ -167,12 +193,19 @@ router.get('/pages', async (req: Request, res: Response) => {
         };
       });
 
+    log.notionApi('Fetched accessible pages', {
+      count: pages.length,
+      truncated,
+    });
+
     return res.json({
       pages,
-      hasMore: response.has_more,
+      hasMore: truncated,
+      totalCount: allResults.length,
+      truncated,
     });
   } catch (error: any) {
-    console.error('Error in /api/notion/pages:', error);
+    log.error('Error in /api/notion/pages', error instanceof Error ? error : new Error(error));
 
     return res.status(500).json({
       error: error.message || 'Failed to fetch pages',

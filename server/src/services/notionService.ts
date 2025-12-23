@@ -38,6 +38,8 @@ export interface NotionDatabaseData {
   schema: DatabaseSchema;
   rows: DatabaseRow[];
   icon?: string;
+  truncated?: boolean;
+  totalPagesSearched?: number;
 }
 
 export type NotionResourceData = NotionPageData | NotionDatabaseData;
@@ -223,7 +225,7 @@ export async function fetchNotionDatabase(databaseUrl: string, token: string): P
     let hasMore = true;
     let startCursor: string | undefined = undefined;
     let pageCount = 0;
-    const MAX_PAGES = 5; // Limit to 500 rows (100 per page) for MVP
+    const MAX_PAGES = 20; // Limit to 2000 rows (100 per page) to prevent extremely long operations
 
     while (hasMore && pageCount < MAX_PAGES) {
       try {
@@ -302,6 +304,12 @@ export async function fetchNotionDatabase(databaseUrl: string, token: string): P
 
     console.log(`Fetched ${rows.length} rows from database`);
 
+    // Check if results were truncated
+    const truncated = hasMore && pageCount >= MAX_PAGES;
+    if (truncated) {
+      console.warn(`⚠️  Database results truncated: Fetched ${rows.length} rows (limit: ${MAX_PAGES * 100})`);
+    }
+
     return {
       type: 'database',
       id: rawDatabaseId,
@@ -310,7 +318,9 @@ export async function fetchNotionDatabase(databaseUrl: string, token: string): P
       rows,
       firstRow: rows[0],
       rowCount: rows.length,
-      icon
+      icon,
+      truncated,
+      totalPagesSearched: pageCount
     };
   } catch (error: any) {
     console.error('Error fetching Notion database:', error);

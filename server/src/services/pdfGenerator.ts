@@ -6,6 +6,7 @@ import type {
   PartialBlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints';
 import type { NotionDatabaseData } from './notionService';
+import { log } from '../utils/logger';
 
 export interface LetterheadData {
   logoUrl?: string;
@@ -339,11 +340,14 @@ export async function generatePdf(request: PdfGenerationRequest): Promise<Buffer
       try {
         await browser.close();
       } catch (closeError) {
-        console.error('Error closing browser:', closeError);
+        log.error('Error closing browser', closeError instanceof Error ? closeError : new Error(String(closeError)));
       }
     }
 
-    console.error('Error generating PDF:', error);
+    log.error('Error generating PDF', error instanceof Error ? error : new Error(String(error)), {
+      type: request.type,
+      title: request.type === 'page' ? request.title : request.database.title,
+    });
 
     // Provide more specific error messages
     if (error instanceof Error) {

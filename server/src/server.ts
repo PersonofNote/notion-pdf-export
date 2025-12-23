@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import notionRouter from './routes/notion';
 import pdfRouter from './routes/pdf';
 import authRouter from './routes/auth';
+import { log } from './utils/logger';
 
 // Load environment variables
 dotenv.config({ path: '../.env' });
@@ -16,7 +17,7 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Validate SESSION_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-  console.error('❌ FATAL: SESSION_SECRET environment variable must be set in production');
+  log.error('FATAL: SESSION_SECRET environment variable must be set in production');
   process.exit(1);
 }
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback_secret_for_development';
@@ -25,6 +26,16 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback_secret_for_develo
 app.set('trust proxy', 1);
 
 // Middleware
+// Force HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(301, `https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
+
 // Allow requests from frontend (supports multiple origins for dev/prod)
 const allowedOrigins = CLIENT_URL.split(',').map(url => url.trim());
 app.use(cors({
@@ -35,7 +46,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`⚠️  CORS: Blocked request from origin: ${origin}`);
+      log.warn('CORS: Blocked request from origin', { origin });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -96,7 +107,7 @@ app.use(generalLimiter);
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  log.httpRequest(req.method, req.path, { ip: req.ip });
   next();
 });
 
@@ -125,7 +136,7 @@ app.use((req: Request, res: Response) => {
 
 // Global error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Unhandled error:', err);
+  log.error('Unhandled error', err, { path: req.path, method: req.method });
 
   res.status(500).json({
     error: 'Internal Server Error',
@@ -135,7 +146,16 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`
+  log.info('Notion PDF Exporter Server started', {
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    clientUrl: CLIENT_URL,
+    healthEndpoint: `http://localhost:${PORT}/health`,
+  });
+
+  // Still log to console in development for visibility
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`
 🚀 Notion PDF Exporter Server
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Environment: ${process.env.NODE_ENV || 'development'}
@@ -153,17 +173,18 @@ API Endpoints:
   POST /api/pdf/generate            - Generate single PDF
   POST /api/pdf/batch               - Generate multiple PDFs (zip)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  `);
+    `);
+  }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+  log.info('SIGTERM signal received: closing HTTP server');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
+  log.info('SIGINT signal received: closing HTTP server');
   process.exit(0);
 });
 

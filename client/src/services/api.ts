@@ -28,6 +28,8 @@ export interface NotionDatabaseData {
   schema: DatabaseSchema;
   rows: DatabaseRow[];
   icon?: string;
+  truncated?: boolean;
+  totalPagesSearched?: number;
 }
 
 export type NotionResourceData = NotionPageData | NotionDatabaseData;
@@ -86,6 +88,8 @@ export interface NotionPage {
 export interface NotionPagesResponse {
   pages: NotionPage[];
   hasMore: boolean;
+  totalCount?: number;
+  truncated?: boolean;
 }
 
 // Use environment variable for API URL, fallback to relative path

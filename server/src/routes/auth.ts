@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { generateRandomState, generateAuthUrl, exchangeCodeForToken, validateOAuthConfig } from '../services/authService';
 import { AuthStatusResponse } from '../types/oauth';
+import { log } from '../utils/logger';
 
 const router = express.Router();
 
@@ -30,10 +31,12 @@ router.get('/notion', (req: Request, res: Response) => {
     const authUrl = generateAuthUrl(state);
     console.log('🔗 Redirecting to:', authUrl);
 
+    log.auth('OAuth flow initiated', { state });
+
     // Redirect user to Notion authorization page (cookie-session auto-saves)
     res.redirect(authUrl);
   } catch (error: any) {
-    console.error('Error initiating OAuth:', error);
+    log.error('Error initiating OAuth', error instanceof Error ? error : new Error(error));
     res.status(500).json({
       error: 'Failed to initiate OAuth',
       message: error.message,
@@ -57,7 +60,7 @@ router.get('/notion/callback', async (req: Request, res: Response) => {
 
     // Check if user denied authorization
     if (error) {
-      console.error('❌ OAuth error:', error);
+      log.warn('OAuth access denied by user', { error });
       return res.redirect(`${process.env.CLIENT_URL}?error=access_denied`);
     }
 
@@ -78,16 +81,15 @@ router.get('/notion/callback', async (req: Request, res: Response) => {
 
     // Verify state (CSRF protection)
     if (state !== req.session?.oauthState) {
-      console.error('❌ State mismatch!');
-      console.error('   Received:', state);
-      console.error('   Expected:', req.session?.oauthState);
+      log.error('OAuth state mismatch - possible CSRF attack', new Error('State mismatch'), {
+        received: state,
+        expected: req.session?.oauthState,
+      });
       return res.status(400).json({
         error: 'Invalid state parameter',
         message: 'Possible CSRF attack detected',
       });
     }
-
-    console.log('✅ State verified successfully');
 
     // Clear the state after verification
     if (req.session) {
@@ -106,7 +108,7 @@ router.get('/notion/callback', async (req: Request, res: Response) => {
       req.session.botId = tokens.bot_id;
     }
 
-    console.log('OAuth successful:', {
+    log.auth('OAuth flow completed successfully', {
       workspaceId: tokens.workspace_id,
       workspaceName: tokens.workspace_name,
     });
@@ -114,7 +116,7 @@ router.get('/notion/callback', async (req: Request, res: Response) => {
     // Redirect back to the app
     res.redirect(`${process.env.CLIENT_URL}?auth=success`);
   } catch (error: any) {
-    console.error('Error in OAuth callback:', error);
+    log.error('Error in OAuth callback', error instanceof Error ? error : new Error(error));
     res.redirect(`${process.env.CLIENT_URL}?error=oauth_failed`);
   }
 });
@@ -124,6 +126,7 @@ router.get('/notion/callback', async (req: Request, res: Response) => {
  * Clear session and log out user
  */
 router.post('/logout', (req: Request, res: Response) => {
+  log.auth('User logged out', { workspaceId: req.session?.workspaceId });
   // With cookie-session, set to null to clear (cast needed for TypeScript)
   (req as any).session = null;
   res.json({ success: true, message: 'Logged out successfully' });
